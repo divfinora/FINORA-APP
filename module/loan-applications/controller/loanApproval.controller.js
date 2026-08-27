@@ -1968,7 +1968,8 @@ export const getVerificationReview = async (req, res) => {
 
     const documentsCompleted = verification.documents.length > 0;
 
-    const witnessCompleted = verification.witness?.agreed === true;
+    const witnessCompleted =
+      verification.witness?.agreed === true;
 
     const consentCompleted =
       verification.customerConsent?.accepted === true;
@@ -1976,7 +1977,8 @@ export const getVerificationReview = async (req, res) => {
     const declarationCompleted =
       verification.visitorDeclaration?.accepted === true;
 
-    const recommendationCompleted = !!verification.recommendation;
+    const recommendationCompleted =
+      !!verification.recommendation;
 
     // ================================
     // Missing Sections
@@ -1998,16 +2000,94 @@ export const getVerificationReview = async (req, res) => {
 
     const readyForSubmit = missing.length === 0;
 
-    // ================================
-    // Photo Preview (max 4)
-    // ================================
+    // =====================================================
+    // PHOTO SEGREGATION
+    // =====================================================
 
-    const photoPreview = verification.photos
-      .slice(0, 4)
+    const allPhotos = verification.photos || [];
+
+    /*
+      WITNESS:
+      All photos having category WITNESS
+
+      VERIFICATION:
+      Verification/field visit related photos
+
+      OTHER:
+      Everything else
+    */
+
+    const witnessPhotos = allPhotos
+      .filter((photo) => photo.category === "WITNESS")
       .map((photo) => ({
         category: photo.category,
+        name: photo.name || null,
         url: photo.url,
+        publicId: photo.publicId || null,
+        uploadedAt: photo.uploadedAt,
       }));
+
+    const verificationCategories = [
+      "CUSTOMER",
+      "CUSTOMER_SELFIE",
+      "HOUSE_FRONT",
+      "HOUSE_INSIDE",
+      "SHOP",
+      "OFFICE",
+    ];
+
+    const verificationPhotos = allPhotos
+      .filter((photo) =>
+        verificationCategories.includes(photo.category)
+      )
+      .map((photo) => ({
+        category: photo.category,
+        name: photo.name || null,
+        url: photo.url,
+        publicId: photo.publicId || null,
+        uploadedAt: photo.uploadedAt,
+      }));
+
+    const otherPhotos = allPhotos
+      .filter(
+        (photo) =>
+          photo.category === "OTHER" ||
+          photo.category === "DOCUMENT" ||
+          ![
+            "WITNESS",
+            ...verificationCategories,
+          ].includes(photo.category)
+      )
+      .map((photo) => ({
+        category: photo.category,
+        name: photo.name || null,
+        url: photo.url,
+        publicId: photo.publicId || null,
+        uploadedAt: photo.uploadedAt,
+      }));
+
+    // =====================================================
+    // PHOTO SUMMARY
+    // =====================================================
+
+    const photoSummary = {
+      total: allPhotos.length,
+
+      witness: {
+        count: witnessPhotos.length,
+        photos: witnessPhotos,
+      },
+
+      verification: {
+        count: verificationPhotos.length,
+        photos: verificationPhotos,
+      },
+
+      other: {
+        count: otherPhotos.length,
+        photos: otherPhotos,
+      },
+    };
 
     // ================================
     // Final Response
@@ -2039,13 +2119,19 @@ export const getVerificationReview = async (req, res) => {
           declarationCompleted,
           recommendationCompleted,
 
-          totalPhotos: verification.photos.length,
+          totalPhotos: allPhotos.length,
           totalDocuments: verification.documents.length,
           totalVideos: verification.videos.length,
 
           readyForSubmit,
           missing,
         },
+
+        // ======================
+        // PHOTO SUMMARY
+        // ======================
+
+        photoSummary,
 
         // ======================
         // UI Cards
@@ -2064,8 +2150,12 @@ export const getVerificationReview = async (req, res) => {
           photos: {
             completed: photosCompleted,
             editable: true,
-            count: verification.photos.length,
-            preview: photoPreview,
+
+            count: allPhotos.length,
+
+            witness: witnessPhotos,
+            verification: verificationPhotos,
+            other: otherPhotos,
           },
 
           documents: {
@@ -2100,7 +2190,14 @@ export const getVerificationReview = async (req, res) => {
         editableData: {
           investigation: verification.investigation,
           location: verification.location,
-          photos: verification.photos,
+
+          photos: {
+            all: allPhotos,
+            witness: witnessPhotos,
+            verification: verificationPhotos,
+            other: otherPhotos,
+          },
+
           videos: verification.videos,
           documents: verification.documents,
           witness: verification.witness,
