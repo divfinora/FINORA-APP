@@ -27,7 +27,7 @@ import {
   saveWitness,
   getVerificationDetails,
   getMyApplications,
-  getApplicationProgress,getVisitorDashboard,getVerificationReview
+  getApplicationProgress,getVisitorDashboard,getVerificationReview,uploadFile
 } from "./controller/loanApproval.controller.js";
 
 const router = express.Router();
@@ -114,14 +114,15 @@ router.post(
 router.patch(
   "/:loanId/witness",
   protect,
-  upload.fields([
-    { name: "signature", maxCount: 1 },
-    { name: "selfie", maxCount: 1 },
-    { name: "idDocument", maxCount: 1 },
-  ]),
   saveWitness
 );
 
+router.post(
+  "/upload-file",
+  protect,
+  upload.single("file"),
+  uploadFile
+);
 router.patch(
   "/:loanId/submit-verification",
   protect,

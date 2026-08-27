@@ -8,12 +8,14 @@ const visitorVerificationSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
-jobId: {
-  type: String,
-  required: true,
-  unique: true,
-  index: true,
-},
+
+    jobId: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+
     loan: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "LoanApplication",
@@ -87,11 +89,11 @@ jobId: {
       address: String,
     },
 
-   photos:[
-{
-    category:{
-        type:String,
-        enum:[
+    photos: [
+      {
+        category: {
+          type: String,
+          enum: [
             "CUSTOMER",
             "CUSTOMER_SELFIE",
             "HOUSE_FRONT",
@@ -101,74 +103,76 @@ jobId: {
             "DOCUMENT",
             "WITNESS",
             "OTHER"
-        ]
-    },
+          ]
+        },
 
-    url:{
-        type:String,
-        required:true
-    },
+        url: {
+          type: String,
+          required: true
+        },
 
-    publicId:String,
+        publicId: String,
 
-    uploadedAt:{
-        type:Date,
-        default:Date.now
-    }
-}
-],
+        uploadedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
 
-  videos:[
-{
-    category:{
-        type:String,
-        enum:[
+    videos: [
+      {
+        category: {
+          type: String,
+          enum: [
             "CUSTOMER",
             "HOUSE",
             "SHOP",
             "OFFICE",
             "OTHER"
-        ]
-    },
+          ]
+        },
 
-    url:{
-        type:String,
-        required:true
-    },
+        url: {
+          type: String,
+          required: true
+        },
 
-    publicId:String,
+        publicId: String,
 
-    duration:Number,
+        duration: Number,
 
-    uploadedAt:{
-        type:Date,
-        default:Date.now
-    }
-}
-],
-finalDeclaration: {
-    informationCorrect: {
+        uploadedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+
+    finalDeclaration: {
+      informationCorrect: {
         type: Boolean,
         default: false
-    },
+      },
 
-    photosGenuine: {
+      photosGenuine: {
         type: Boolean,
         default: false
-    },
+      },
 
-    investigationCompleted: {
+      investigationCompleted: {
         type: Boolean,
         default: false
+      },
+
+      acceptedAt: Date
     },
 
-    acceptedAt: Date
-},
-documents:[
-{
-    type:{
-        type:String,
-        enum:[
+    documents: [
+      {
+        type: {
+          type: String,
+          enum: [
             "AADHAAR",
             "PAN",
             "PASSPORT",
@@ -176,145 +180,181 @@ documents:[
             "VOTER_ID",
             "BANK_PASSBOOK",
             "OTHER"
-        ]
-    },
+          ]
+        },
 
-    owner:{
-        type:String,
-        enum:[
+        owner: {
+          type: String,
+          enum: [
             "CUSTOMER",
             "WITNESS"
-        ]
+          ]
+        },
+
+        frontUrl: String,
+
+        backUrl: String,
+
+        verified: {
+          type: Boolean,
+          default: false
+        },
+
+        originalSeen: {
+          type: Boolean,
+          default: false
+        },
+
+        photocopyCollected: {
+          type: Boolean,
+          default: false
+        },
+
+        remarks: String
+      }
+    ],
+
+    verificationScore: {
+      type: Number,
+      default: 0
     },
-
-    frontUrl:String,
-
-    backUrl:String,
-
-    verified:{
-        type:Boolean,
-        default:false
-    },
-
-    originalSeen:{
-        type:Boolean,
-        default:false
-    },
-
-    photocopyCollected:{
-        type:Boolean,
-        default:false
-    },
-
-    remarks:String
-}
-],
-verificationScore:{
-    type:Number,
-    default:0
-},
 
     customerConsent: {
-     accepted:{
-    type:Boolean,
-    default:false
-},
+      accepted: {
+        type: Boolean,
+        default: false
+      },
 
       signature: String,
 
       signedAt: Date,
     },
 
-  witness: {
-  fullName: String,
+    // ======================================
+    // WITNESS
+    // ======================================
 
-  mobile: String,
+    witness: {
+      fullName: String,
 
-  relation: String,
+      mobile: String,
 
-  idType: {
-    type: String,
-    enum: [
-      "AADHAAR",
-      "PAN",
-      "DRIVING_LICENSE",
-      "VOTER_ID",
-      "PASSPORT",
-      "OTHER"
-    ]
-  },
+      relation: String,
 
-  idNumber: String,
+      // Maximum 2
+      signatures: [
+        {
+          name: {
+            type: String,
+            trim: true,
+          },
 
-  idDocument: {
-    url: String,
-    publicId: String
-  },
+          imageUrl: {
+            type: String,
+            trim: true,
+          },
 
-  signature: {
-    url: String,
-    publicId: String
-  },
+          publicId: String,
+        }
+      ],
 
-  selfie: {
-    url: String,
-    publicId: String
-  },
+      // Maximum 2
+      photos: [
+        {
+          name: {
+            type: String,
+            trim: true,
+          },
 
-  agreed: {
-    type: Boolean,
-    default: false
-  },
+          imageUrl: {
+            type: String,
+            trim: true,
+          },
 
-  signedAt: Date
-},
+          publicId: String,
+        }
+      ],
+
+      // Maximum 10
+      documents: [
+        {
+          docTypeName: {
+            type: String,
+            trim: true,
+          },
+
+          docTypeId: {
+            type: String,
+            trim: true,
+          },
+
+          docUrl: {
+            type: String,
+            trim: true,
+          },
+
+          publicId: String,
+        }
+      ],
+
+      agreed: {
+        type: Boolean,
+        default: false
+      },
+
+      signedAt: Date
+    },
 
     visitorDeclaration: {
-    accepted:{
-    type:Boolean,
-    default:false
-},
-reviewedBy: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "User",
-},
+      accepted: {
+        type: Boolean,
+        default: false
+      },
 
-reviewedAt: Date,
+      reviewedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+
+      reviewedAt: Date,
 
       signature: String,
 
       declaredAt: Date,
     },
+
     // Admin Review
 
-
-reviewRemarks: {
-  type: String,
-  trim: true,
-},
+    reviewRemarks: {
+      type: String,
+      trim: true,
+    },
 
     rejectionReason: {
       code: String,
 
       message: String,
     },
+
     rejectionReason: {
-  code: String,
-  message: String,
-  rejectedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
-  rejectedAt: Date,
-},
+      code: String,
+      message: String,
+      rejectedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      rejectedAt: Date,
+    },
 
     remarks: String,
 
-    startedAt: Date,photos:[
-{
-    category:{
-        type:String,
-        enum:[
+    startedAt: Date,
+
+    photos: [
+      {
+        category: {
+          type: String,
+          enum: [
             "CUSTOMER",
             "CUSTOMER_SELFIE",
             "HOUSE_FRONT",
@@ -324,22 +364,22 @@ reviewRemarks: {
             "DOCUMENT",
             "WITNESS",
             "OTHER"
-        ]
-    },
+          ]
+        },
 
-    url:{
-        type:String,
-        required:true
-    },
+        url: {
+          type: String,
+          required: true
+        },
 
-    publicId:String,
+        publicId: String,
 
-    uploadedAt:{
-        type:Date,
-        default:Date.now
-    }
-}
-],
+        uploadedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
 
     completedAt: Date,
 

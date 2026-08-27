@@ -1054,8 +1054,9 @@ export const saveWitness = async (req, res) => {
       fullName,
       mobile,
       relation,
-      idType,
-      idNumber,
+      signatures,
+      photos,
+      documents,
       agreed,
     } = req.body;
 
@@ -1084,24 +1085,10 @@ export const saveWitness = async (req, res) => {
       });
     }
 
-    if (!relation) {
+    if (!relation?.trim()) {
       return res.status(400).json({
         success: false,
         message: "Relation is required.",
-      });
-    }
-
-    if (!idType) {
-      return res.status(400).json({
-        success: false,
-        message: "ID Type is required.",
-      });
-    }
-
-    if (!idNumber?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "ID Number is required.",
       });
     }
 
@@ -1113,87 +1100,199 @@ export const saveWitness = async (req, res) => {
     }
 
     // ======================================
+    // Parse Arrays
+    // ======================================
+
+    let parsedSignatures = signatures || [];
+    let parsedPhotos = photos || [];
+    let parsedDocuments = documents || [];
+
+    if (typeof parsedSignatures === "string") {
+      try {
+        parsedSignatures = JSON.parse(parsedSignatures);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid signatures format.",
+        });
+      }
+    }
+
+    if (typeof parsedPhotos === "string") {
+      try {
+        parsedPhotos = JSON.parse(parsedPhotos);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid witness photos format.",
+        });
+      }
+    }
+
+    if (typeof parsedDocuments === "string") {
+      try {
+        parsedDocuments = JSON.parse(parsedDocuments);
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid documents format.",
+        });
+      }
+    }
+
+    // ======================================
+    // Array Validation
+    // ======================================
+
+    if (!Array.isArray(parsedSignatures)) {
+      return res.status(400).json({
+        success: false,
+        message: "Signatures must be an array.",
+      });
+    }
+
+    if (!Array.isArray(parsedPhotos)) {
+      return res.status(400).json({
+        success: false,
+        message: "Witness photos must be an array.",
+      });
+    }
+
+    if (!Array.isArray(parsedDocuments)) {
+      return res.status(400).json({
+        success: false,
+        message: "Documents must be an array.",
+      });
+    }
+
+    // ======================================
+    // Maximum Limits
+    // ======================================
+
+    if (parsedSignatures.length > 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum 2 signatures are allowed.",
+      });
+    }
+
+    if (parsedPhotos.length > 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum 2 witness photos are allowed.",
+      });
+    }
+
+    if (parsedDocuments.length > 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Maximum 10 documents are allowed.",
+      });
+    }
+
+    // ======================================
+    // Validate Signatures
+    // ======================================
+
+    for (const signature of parsedSignatures) {
+      if (!signature?.name?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Signature name is required.",
+        });
+      }
+
+      if (!signature?.imageUrl?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Signature image URL is required.",
+        });
+      }
+    }
+
+    // ======================================
+    // Validate Witness Photos
+    // ======================================
+
+    for (const photo of parsedPhotos) {
+      if (!photo?.name?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Witness photo name is required.",
+        });
+      }
+
+      if (!photo?.imageUrl?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Witness photo URL is required.",
+        });
+      }
+    }
+
+    // ======================================
+    // Validate Documents
+    // ======================================
+
+    for (const document of parsedDocuments) {
+      if (!document?.docTypeName?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Document type name is required.",
+        });
+      }
+
+      if (!document?.docTypeId?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Document type ID is required.",
+        });
+      }
+
+      if (!document?.docUrl?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Document URL is required.",
+        });
+      }
+    }
+
+    // ======================================
     // Save Witness Details
     // ======================================
 
     verification.witness = {
       ...verification.witness,
 
-      ...(fullName && {
-        fullName: fullName.trim(),
-      }),
+      fullName: fullName.trim(),
 
-      ...(mobile && {
-        mobile: mobile.trim(),
-      }),
+      mobile: mobile.trim(),
 
-      ...(relation && {
-        relation,
-      }),
+      relation: relation.trim(),
 
-      ...(idType && {
-        idType,
-      }),
+      signatures: parsedSignatures.map((signature) => ({
+        name: signature.name.trim(),
+        imageUrl: signature.imageUrl.trim(),
+        publicId: signature.publicId || undefined,
+      })),
 
-      ...(idNumber && {
-        idNumber: idNumber.trim(),
-      }),
+      photos: parsedPhotos.map((photo) => ({
+        name: photo.name.trim(),
+        imageUrl: photo.imageUrl.trim(),
+        publicId: photo.publicId || undefined,
+      })),
+
+      documents: parsedDocuments.map((document) => ({
+        docTypeName: document.docTypeName.trim(),
+        docTypeId: document.docTypeId.trim(),
+        docUrl: document.docUrl.trim(),
+        publicId: document.publicId || undefined,
+      })),
 
       agreed: true,
 
       signedAt: new Date(),
     };
-
-    // ======================================
-    // Upload Signature
-    // ======================================
-
-    if (req.files?.signature?.length) {
-      const uploaded = await uploadToCloudinary(
-        req.files.signature[0].buffer,
-        `visitor-verification/${loanId}/witness-signature`
-      );
-
-      verification.witness.signature = {
-        url: uploaded.secure_url,
-        publicId: uploaded.public_id,
-        uploadedAt: new Date(),
-      };
-    }
-
-    // ======================================
-    // Upload Selfie
-    // ======================================
-
-    if (req.files?.selfie?.length) {
-      const uploaded = await uploadToCloudinary(
-        req.files.selfie[0].buffer,
-        `visitor-verification/${loanId}/witness-selfie`
-      );
-
-      verification.witness.selfie = {
-        url: uploaded.secure_url,
-        publicId: uploaded.public_id,
-        uploadedAt: new Date(),
-      };
-    }
-
-    // ======================================
-    // Upload ID Document
-    // ======================================
-
-    if (req.files?.idDocument?.length) {
-      const uploaded = await uploadToCloudinary(
-        req.files.idDocument[0].buffer,
-        `visitor-verification/${loanId}/witness-id`
-      );
-
-      verification.witness.idDocument = {
-        url: uploaded.secure_url,
-        publicId: uploaded.public_id,
-        uploadedAt: new Date(),
-      };
-    }
 
     // ======================================
     // Start Verification
@@ -1235,6 +1334,48 @@ export const saveWitness = async (req, res) => {
   }
 };
 
+
+
+
+export const uploadFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "File is required.",
+      });
+    }
+
+    const { folder } = req.body;
+
+    const uploadFolder =
+      folder?.trim() || "visitor-verification";
+
+    const uploaded = await uploadToCloudinary(
+      req.file.buffer,
+      uploadFolder
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "File uploaded successfully.",
+
+      data: {
+        url: uploaded.secure_url,
+        name: req.file.originalname,
+        publicId: uploaded.public_id,
+      },
+    });
+
+  } catch (error) {
+    console.error("Upload File Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 
 // admin flow of manual verification 
