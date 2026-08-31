@@ -1486,7 +1486,6 @@ const getChecklist = (verification) => {
 // API Controllers niche
 export const getMyApplications = async (req, res) => {
   try {
-
     const visitorId = req.user._id;
 
     const loans = await LoanApplication.find({
@@ -1497,14 +1496,11 @@ export const getMyApplications = async (req, res) => {
       .populate("product", "displayName")
       .sort({ createdAt: -1 });
 
-
     const response = await Promise.all(
       loans.map(async (loan) => {
-
         const verification = await VisitorVerification.findOne({
           loan: loan._id,
         });
-
 
         let progress = 0;
 
@@ -1512,39 +1508,56 @@ export const getMyApplications = async (req, res) => {
           progress = calculateProgress(verification);
         }
 
-
         return {
           loanId: loan._id,
+
           applicationId: loan.applicationId,
+
           customer: loan.customer,
+
           product: loan.product,
+
           amount: loan.amount,
+
           status: loan.status,
+
           stage: loan.stage,
-          verificationStatus: verification?.status || "ASSIGNED",
+
+          // ======================================
+          // NEW FIELDS FOR MY APPLICATIONS SCREEN
+          // ======================================
+
+          loanType: loan.product?.displayName || null,
+
+          assignedDate: loan.assignedDate || null,
+
+          address: loan.address || null,
+
+          // ======================================
+          // VISITOR VERIFICATION
+          // ======================================
+
+          verificationStatus:
+            verification?.status || "ASSIGNED",
+
           progress,
         };
-
       })
     );
 
-
-    return res.json({
-      success:true,
-      data:response
+    return res.status(200).json({
+      success: true,
+      data: response,
     });
-
-
-  } catch(err){
+  } catch (err) {
+    console.error("Get My Applications Error:", err);
 
     return res.status(500).json({
-      success:false,
-      message:err.message
+      success: false,
+      message: err.message,
     });
-
   }
 };
-
 
 
 export const getApplicationProgress = async (req, res) => {
@@ -2355,6 +2368,423 @@ export const saveFinalDeclaration = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: err.message,
+    });
+  }
+};
+
+
+export const getVerificationSummary = async (req, res) => {
+  try {
+    const { loanId } = req.params;
+
+    // ==========================================
+    // FIND VERIFICATION
+    // ==========================================
+
+    const verification = await VisitorVerification.findOne({
+      loan: loanId,
+      visitor: req.user._id,
+    })
+      .populate("customer", "fullName mobile")
+      .populate("loan", "applicationId amount status stage");
+
+    if (!verification) {
+      return res.status(404).json({
+        success: false,
+        message: "Verification not found.",
+      });
+    }
+
+    // ==========================================
+    // SAFE DATA
+    // ==========================================
+
+    const investigation = verification.investigation || {};
+    const location = verification.location || {};
+
+    const allPhotos = verification.photos || [];
+    const allDocuments = verification.documents || [];
+    const allVideos = verification.videos || [];
+
+    // ==========================================
+    // INVESTIGATION COMPLETION
+    // ==========================================
+
+    const investigationFields = [
+      "customerAvailable",
+      "customerVerified",
+      "addressVerified",
+      "employmentVerified",
+      "businessVerified",
+      "incomeVerified",
+      "originalDocumentsVerified",
+      "photocopiesCollected",
+      "houseVisited",
+      "neighboursVerified",
+    ];
+
+    const investigationCompleted = investigationFields.every(
+      (field) => investigation[field] === true
+    );
+
+    // ==========================================
+    // SITE DETAILS
+    // ==========================================
+
+    const siteDetailsCompleted =
+      !!location.latitude &&
+      !!location.longitude;
+
+    // ==========================================
+    // PHOTOS
+    // ==========================================
+
+    const verificationCategories = [
+      "CUSTOMER",
+      "CUSTOMER_SELFIE",
+      "HOUSE_FRONT",
+      "HOUSE_INSIDE",
+      "SHOP",
+      "OFFICE",
+    ];
+
+    const verificationPhotos = allPhotos
+      .filter((photo) =>
+        verificationCategories.includes(photo.category)
+      )
+      .map((photo) => ({
+        category: photo.category,
+        name: photo.name || null,
+        url: photo.url,
+        publicId: photo.publicId || null,
+        uploadedAt: photo.uploadedAt,
+      }));
+
+    const witnessPhotos = allPhotos
+      .filter((photo) => photo.category === "WITNESS")
+      .map((photo) => ({
+        category: photo.category,
+        name: photo.name || null,
+        url: photo.url,
+        publicId: photo.publicId || null,
+        uploadedAt: photo.uploadedAt,
+      }));
+
+    const documentPhotos = allPhotos
+      .filter((photo) => photo.category === "DOCUMENT")
+      .map((photo) => ({
+        category: photo.category,
+        name: photo.name || null,
+        url: photo.url,
+        publicId: photo.publicId || null,
+        uploadedAt: photo.uploadedAt,
+      }));
+
+    const otherPhotos = allPhotos
+      .filter((photo) => photo.category === "OTHER")
+      .map((photo) => ({
+        category: photo.category,
+        name: photo.name || null,
+        url: photo.url,
+        publicId: photo.publicId || null,
+        uploadedAt: photo.uploadedAt,
+      }));
+
+    const photosCompleted = allPhotos.length > 0;
+
+    // ==========================================
+    // DOCUMENTS
+    // ==========================================
+
+    const documentsCompleted = allDocuments.length > 0;
+
+    // ==========================================
+    // WITNESS
+    // ==========================================
+
+    const witnessCompleted =
+      verification.witness?.agreed === true;
+
+    // ==========================================
+    // CUSTOMER CONSENT
+    // ==========================================
+
+    const customerConsentCompleted =
+      verification.customerConsent?.accepted === true;
+
+    // ==========================================
+    // VISITOR DECLARATION
+    // ==========================================
+
+    const visitorDeclarationCompleted =
+      verification.visitorDeclaration?.accepted === true;
+
+    // ==========================================
+    // REMARKS
+    // ==========================================
+
+    const remarksCompleted =
+      !!verification.remarks?.trim();
+
+    // ==========================================
+    // RECOMMENDATION
+    // ==========================================
+
+    const recommendationCompleted =
+      !!verification.recommendation;
+
+    // ==========================================
+    // SECTION STATUS
+    // ==========================================
+
+    const sectionStatus = {
+      verification: true,
+      investigation: investigationCompleted,
+      siteDetails: siteDetailsCompleted,
+      photos: photosCompleted,
+      documents: documentsCompleted,
+      witness: witnessCompleted,
+      customerConsent: customerConsentCompleted,
+      visitorDeclaration: visitorDeclarationCompleted,
+      remarks: remarksCompleted,
+      recommendation: recommendationCompleted,
+    };
+
+    // ==========================================
+    // MISSING SECTIONS
+    // ==========================================
+
+    const missing = Object.entries(sectionStatus)
+      .filter(([_, completed]) => !completed)
+      .map(([section]) => section.toUpperCase());
+
+    const completedSections =
+      Object.values(sectionStatus).filter(Boolean).length;
+
+    const totalSections =
+      Object.keys(sectionStatus).length;
+
+    const readyForSubmit = missing.length === 0;
+
+    // ==========================================
+    // PROGRESS
+    // ==========================================
+
+    const percentage = Math.round(
+      (completedSections / totalSections) * 100
+    );
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
+
+    return res.status(200).json({
+      success: true,
+      message: "Verification summary fetched successfully.",
+
+      data: {
+        // ======================================
+        // HEADER
+        // ======================================
+
+        header: {
+          jobId: verification.jobId,
+          verificationId: verification.verificationId,
+
+          status: verification.status,
+
+          progress: {
+            completedSteps: completedSections,
+            totalSteps: totalSections,
+            percentage,
+          },
+        },
+
+        // ======================================
+        // LOAN
+        // ======================================
+
+        loan: verification.loan,
+
+        // ======================================
+        // CUSTOMER
+        // ======================================
+
+        customer: verification.customer,
+
+        // ======================================
+        // SCREEN SECTIONS
+        // ======================================
+
+        sections: {
+          // ------------------------------
+          // VERIFICATION
+          // ------------------------------
+
+          verification: {
+            completed: true,
+          },
+
+          // ------------------------------
+          // INVESTIGATION
+          // ------------------------------
+
+          investigation: {
+            completed: investigationCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            data: investigation,
+          },
+
+          // ------------------------------
+          // SITE DETAILS
+          // ------------------------------
+
+          siteDetails: {
+            completed: siteDetailsCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            location: location,
+          },
+
+          // ------------------------------
+          // PHOTOS
+          // ------------------------------
+
+          photos: {
+            completed: photosCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            count: allPhotos.length,
+
+            verificationPhotos: {
+              count: verificationPhotos.length,
+              items: verificationPhotos,
+            },
+
+            witnessPhotos: {
+              count: witnessPhotos.length,
+              items: witnessPhotos,
+            },
+
+            documentPhotos: {
+              count: documentPhotos.length,
+              items: documentPhotos,
+            },
+
+            otherPhotos: {
+              count: otherPhotos.length,
+              items: otherPhotos,
+            },
+          },
+
+          // ------------------------------
+          // DOCUMENTS
+          // ------------------------------
+
+          documents: {
+            completed: documentsCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            count: allDocuments.length,
+
+            items: allDocuments,
+          },
+
+          // ------------------------------
+          // WITNESS
+          // ------------------------------
+
+          witness: {
+            completed: witnessCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            data: verification.witness || null,
+          },
+
+          // ------------------------------
+          // CUSTOMER CONSENT
+          // ------------------------------
+
+          customerConsent: {
+            completed: customerConsentCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            data: verification.customerConsent || null,
+          },
+
+          // ------------------------------
+          // VISITOR DECLARATION
+          // ------------------------------
+
+          visitorDeclaration: {
+            completed: visitorDeclarationCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            data: verification.visitorDeclaration || null,
+          },
+
+          // ------------------------------
+          // REMARKS
+          // ------------------------------
+
+          remarks: {
+            completed: remarksCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            value: verification.remarks || "",
+          },
+
+          // ------------------------------
+          // RECOMMENDATION
+          // ------------------------------
+
+          recommendation: {
+            completed: recommendationCompleted,
+            editable: verification.status !== "SUBMITTED",
+
+            value: verification.recommendation || null,
+          },
+        },
+
+        // ======================================
+        // SUMMARY
+        // ======================================
+
+        summary: {
+          totalPhotos: allPhotos.length,
+          totalDocuments: allDocuments.length,
+          totalVideos: allVideos.length,
+
+          completedSections,
+          totalSections,
+
+          readyForSubmit,
+
+          missing,
+        },
+
+        // ======================================
+        // TIMELINE
+        // ======================================
+
+        timeline: {
+          startedAt: verification.startedAt,
+          submittedAt: verification.submittedAt,
+          completedAt: verification.completedAt,
+          lastSavedAt: verification.updatedAt,
+        },
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Get Verification Summary Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
     });
   }
 };
