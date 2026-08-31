@@ -23,7 +23,7 @@ import {
   getVisitorActivity,
   submitVerification,
   saveInvestigation,
-  uploadPhoto,
+  uploadPhotos,
   saveWitness,
   getVerificationDetails,
   getMyApplications,
@@ -107,8 +107,8 @@ router.patch(
 router.post(
   "/:loanId/upload-photo",
   protect,
-  upload.single("photo"),
-  uploadPhoto
+  upload.array("files", 10),
+  uploadPhotos
 );
 
 router.patch(

@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 
 const visitorVerificationSchema = new mongoose.Schema(
   {
+    // ======================================
+    // VERIFICATION BASIC DETAILS
+    // ======================================
+
     verificationId: {
       type: String,
       required: true,
@@ -37,57 +41,112 @@ const visitorVerificationSchema = new mongoose.Schema(
       index: true,
     },
 
+    // ======================================
+    // STATUS
+    // ======================================
+
     status: {
       type: String,
-      enum: [
-        "ASSIGNED",
-        "IN_PROGRESS",
-        "SUBMITTED",
-        "APPROVED",
-        "REJECTED",
-      ],
+      enum: ["ASSIGNED", "IN_PROGRESS", "SUBMITTED", "APPROVED", "REJECTED"],
       default: "ASSIGNED",
       index: true,
     },
 
+    // ======================================
+    // RECOMMENDATION
+    // ======================================
+
     recommendation: {
       type: String,
-      enum: [
-        "APPROVE",
-        "REJECT",
-      ],
+      enum: ["APPROVE", "REJECT"],
       default: null,
     },
 
+    // ======================================
+    // INVESTIGATION
+    // ======================================
+
     investigation: {
-      customerAvailable: Boolean,
+      customerAvailable: {
+        type: Boolean,
+        default: false,
+      },
 
-      customerVerified: Boolean,
+      customerVerified: {
+        type: Boolean,
+        default: false,
+      },
 
-      addressVerified: Boolean,
+      addressVerified: {
+        type: Boolean,
+        default: false,
+      },
 
-      employmentVerified: Boolean,
+      employmentVerified: {
+        type: Boolean,
+        default: false,
+      },
 
-      businessVerified: Boolean,
+      businessVerified: {
+        type: Boolean,
+        default: false,
+      },
 
-      incomeVerified: Boolean,
+      incomeVerified: {
+        type: Boolean,
+        default: false,
+      },
 
-      originalDocumentsVerified: Boolean,
+      originalDocumentsVerified: {
+        type: Boolean,
+        default: false,
+      },
 
-      photocopiesCollected: Boolean,
+      photocopiesCollected: {
+        type: Boolean,
+        default: false,
+      },
 
-      houseVisited: Boolean,
+      houseVisited: {
+        type: Boolean,
+        default: false,
+      },
 
-      neighboursVerified: Boolean,
+      neighboursVerified: {
+        type: Boolean,
+        default: false,
+      },
 
-      remarks: String,
+      remarks: {
+        type: String,
+        trim: true,
+      },
     },
+
+    // ======================================
+    // LOCATION
+    // ======================================
 
     location: {
-      latitude: Number,
-      longitude: Number,
-      address: String,
+      latitude: {
+        type: Number,
+      },
+
+      longitude: {
+        type: Number,
+      },
+
+      address: {
+        type: String,
+        trim: true,
+      },
     },
+
+    // ======================================
+    // VERIFICATION PHOTOS
+    // Actual image is NOT stored in DB.
+    // Only Cloudinary metadata is stored.
+    // ======================================
 
     photos: [
       {
@@ -102,71 +161,99 @@ const visitorVerificationSchema = new mongoose.Schema(
             "OFFICE",
             "DOCUMENT",
             "WITNESS",
-            "OTHER"
-          ]
+            "OTHER",
+          ],
+        },
+
+        name: {
+          type: String,
+          trim: true,
         },
 
         url: {
           type: String,
-          required: true
+          required: true,
+          trim: true,
         },
 
-        publicId: String,
+        publicId: {
+          type: String,
+          trim: true,
+        },
 
         uploadedAt: {
           type: Date,
-          default: Date.now
-        }
-      }
+          default: Date.now,
+        },
+      },
     ],
+
+    // ======================================
+    // VERIFICATION VIDEOS
+    // ======================================
 
     videos: [
       {
         category: {
           type: String,
-          enum: [
-            "CUSTOMER",
-            "HOUSE",
-            "SHOP",
-            "OFFICE",
-            "OTHER"
-          ]
+          enum: ["CUSTOMER", "HOUSE", "SHOP", "OFFICE", "OTHER"],
+        },
+
+        name: {
+          type: String,
+          trim: true,
         },
 
         url: {
           type: String,
-          required: true
+          required: true,
+          trim: true,
         },
 
-        publicId: String,
+        publicId: {
+          type: String,
+          trim: true,
+        },
 
-        duration: Number,
+        duration: {
+          type: Number,
+        },
 
         uploadedAt: {
           type: Date,
-          default: Date.now
-        }
-      }
+          default: Date.now,
+        },
+      },
     ],
+
+    // ======================================
+    // FINAL DECLARATION
+    // ======================================
 
     finalDeclaration: {
       informationCorrect: {
         type: Boolean,
-        default: false
+        default: false,
       },
 
       photosGenuine: {
         type: Boolean,
-        default: false
+        default: false,
       },
 
       investigationCompleted: {
         type: Boolean,
-        default: false
+        default: false,
       },
 
-      acceptedAt: Date
+      acceptedAt: {
+        type: Date,
+      },
     },
+
+    // ======================================
+    // VERIFICATION DOCUMENTS
+    // ======================================
 
     documents: [
       {
@@ -179,55 +266,74 @@ const visitorVerificationSchema = new mongoose.Schema(
             "DRIVING_LICENSE",
             "VOTER_ID",
             "BANK_PASSBOOK",
-            "OTHER"
-          ]
+            "OTHER",
+          ],
         },
 
         owner: {
           type: String,
-          enum: [
-            "CUSTOMER",
-            "WITNESS"
-          ]
+          enum: ["CUSTOMER", "WITNESS"],
         },
 
-        frontUrl: String,
+        frontUrl: {
+          type: String,
+          trim: true,
+        },
 
-        backUrl: String,
+        backUrl: {
+          type: String,
+          trim: true,
+        },
 
         verified: {
           type: Boolean,
-          default: false
+          default: false,
         },
 
         originalSeen: {
           type: Boolean,
-          default: false
+          default: false,
         },
 
         photocopyCollected: {
           type: Boolean,
-          default: false
+          default: false,
         },
 
-        remarks: String
-      }
+        remarks: {
+          type: String,
+          trim: true,
+        },
+      },
     ],
+
+    // ======================================
+    // VERIFICATION SCORE
+    // ======================================
 
     verificationScore: {
       type: Number,
-      default: 0
+      default: 0,
     },
+
+    // ======================================
+    // CUSTOMER CONSENT
+    // ======================================
 
     customerConsent: {
       accepted: {
         type: Boolean,
-        default: false
+        default: false,
       },
 
-      signature: String,
+      signature: {
+        type: String,
+        trim: true,
+      },
 
-      signedAt: Date,
+      signedAt: {
+        type: Date,
+      },
     },
 
     // ======================================
@@ -235,13 +341,25 @@ const visitorVerificationSchema = new mongoose.Schema(
     // ======================================
 
     witness: {
-      fullName: String,
+      fullName: {
+        type: String,
+        trim: true,
+      },
 
-      mobile: String,
+      mobile: {
+        type: String,
+        trim: true,
+      },
 
-      relation: String,
+      relation: {
+        type: String,
+        trim: true,
+      },
 
-      // Maximum 2
+      // ------------------------------------
+      // Witness Signatures - Maximum 2
+      // ------------------------------------
+
       signatures: [
         {
           name: {
@@ -254,11 +372,17 @@ const visitorVerificationSchema = new mongoose.Schema(
             trim: true,
           },
 
-          publicId: String,
-        }
+          publicId: {
+            type: String,
+            trim: true,
+          },
+        },
       ],
 
-      // Maximum 2
+      // ------------------------------------
+      // Witness Photos - Maximum 2
+      // ------------------------------------
+
       photos: [
         {
           name: {
@@ -271,11 +395,17 @@ const visitorVerificationSchema = new mongoose.Schema(
             trim: true,
           },
 
-          publicId: String,
-        }
+          publicId: {
+            type: String,
+            trim: true,
+          },
+        },
       ],
 
-      // Maximum 10
+      // ------------------------------------
+      // Witness Documents - Maximum 10
+      // ------------------------------------
+
       documents: [
         {
           docTypeName: {
@@ -293,22 +423,31 @@ const visitorVerificationSchema = new mongoose.Schema(
             trim: true,
           },
 
-          publicId: String,
-        }
+          publicId: {
+            type: String,
+            trim: true,
+          },
+        },
       ],
 
       agreed: {
         type: Boolean,
-        default: false
+        default: false,
       },
 
-      signedAt: Date
+      signedAt: {
+        type: Date,
+      },
     },
+
+    // ======================================
+    // VISITOR DECLARATION
+    // ======================================
 
     visitorDeclaration: {
       accepted: {
         type: Boolean,
-        default: false
+        default: false,
       },
 
       reviewedBy: {
@@ -316,74 +455,82 @@ const visitorVerificationSchema = new mongoose.Schema(
         ref: "User",
       },
 
-      reviewedAt: Date,
+      reviewedAt: {
+        type: Date,
+      },
 
-      signature: String,
+      signature: {
+        type: String,
+        trim: true,
+      },
 
-      declaredAt: Date,
+      declaredAt: {
+        type: Date,
+      },
     },
 
-    // Admin Review
+    // ======================================
+    // ADMIN REVIEW
+    // ======================================
 
     reviewRemarks: {
       type: String,
       trim: true,
     },
 
-    rejectionReason: {
-      code: String,
-
-      message: String,
-    },
+    // ======================================
+    // REJECTION REASON
+    // ======================================
 
     rejectionReason: {
-      code: String,
-      message: String,
+      code: {
+        type: String,
+        trim: true,
+      },
+
+      message: {
+        type: String,
+        trim: true,
+      },
+
       rejectedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
       },
-      rejectedAt: Date,
+
+      rejectedAt: {
+        type: Date,
+      },
     },
 
-    remarks: String,
+    // ======================================
+    // GENERAL REMARKS
+    // ======================================
 
-    startedAt: Date,
+    remarks: {
+      type: String,
+      trim: true,
+    },
 
-    photos: [
-      {
-        category: {
-          type: String,
-          enum: [
-            "CUSTOMER",
-            "CUSTOMER_SELFIE",
-            "HOUSE_FRONT",
-            "HOUSE_INSIDE",
-            "SHOP",
-            "OFFICE",
-            "DOCUMENT",
-            "WITNESS",
-            "OTHER"
-          ]
-        },
+    // ======================================
+    // TIMELINE
+    // ======================================
 
-        url: {
-          type: String,
-          required: true
-        },
+    startedAt: {
+      type: Date,
+    },
 
-        publicId: String,
+    completedAt: {
+      type: Date,
+    },
 
-        uploadedAt: {
-          type: Date,
-          default: Date.now
-        }
-      }
-    ],
+    submittedAt: {
+      type: Date,
+    },
 
-    completedAt: Date,
-
-    submittedAt: Date,
+    // ======================================
+    // VERSION
+    // ======================================
 
     version: {
       type: Number,
@@ -392,8 +539,12 @@ const visitorVerificationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
+
+// ==========================================
+// INDEXES
+// ==========================================
 
 visitorVerificationSchema.index({
   loan: 1,
@@ -408,7 +559,8 @@ visitorVerificationSchema.index({
   status: 1,
 });
 
-export default mongoose.model(
-  "VisitorVerification",
-  visitorVerificationSchema
-);
+// ==========================================
+// MODEL
+// ==========================================
+
+export default mongoose.model("VisitorVerification", visitorVerificationSchema);

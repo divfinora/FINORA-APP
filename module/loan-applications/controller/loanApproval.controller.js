@@ -927,40 +927,17 @@ export const saveInvestigation = async (req, res) => {
     data: verification,
   });
 };
-export const uploadPhoto = async (req, res) => {
+export const uploadPhotos = async (req, res) => {
   try {
     const { loanId } = req.params;
-    const { category } = req.body;
 
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "Photo is required.",
+        message: "At least one photo is required.",
       });
     }
-// console.log(req.body);
-    const allowedCategories = [
-    "CUSTOMER",
-            "CUSTOMER_SELFIE",
-            "HOUSE_FRONT",
-            "HOUSE_INSIDE",
-            "SHOP",
-            "OFFICE",
-            "DOCUMENT",
-            "WITNESS",
-            "OTHER"
-    ];
 
-    if (!allowedCategories.includes(category)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid photo category.",
-      });
-    }
-//     console.log(req.file);
-// console.log(req.files);
-
-    // Find verification of logged-in visitor
     const verification = await VisitorVerification.findOne({
       loan: loanId,
       visitor: req.user._id,
@@ -973,7 +950,6 @@ export const uploadPhoto = async (req, res) => {
       });
     }
 
-    // Don't allow upload after submission
     if (verification.status === "SUBMITTED") {
       return res.status(400).json({
         success: false,
@@ -981,30 +957,31 @@ export const uploadPhoto = async (req, res) => {
       });
     }
 
-    // Maximum photo validation
-    if (verification.photos.length >= 10) {
+    if (verification.photos.length + req.files.length > 10) {
       return res.status(400).json({
         success: false,
         message: "Maximum 10 photos allowed.",
       });
     }
 
-    // Upload to Cloudinary
-    const uploaded = await uploadToCloudinary(
-      req.file.buffer,
-      `visitor-verification/${loanId}/photos`,
-    );
+    const uploadedFiles = [];
 
-    // Save photo metadata
-    verification.photos.push({
-      category,
-      url: uploaded.secure_url,
-      publicId: uploaded.public_id,
-      uploadedBy: req.user._id,
-      uploadedAt: new Date(),
-    });
+    for (const file of req.files) {
+      const uploaded = await uploadToCloudinary(
+        file.buffer,
+        `visitor-verification/${loanId}/photos`
+      );
 
-    // First activity starts verification
+      uploadedFiles.push({
+        name: file.originalname,
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+        uploadedAt: new Date(),
+      });
+    }
+
+    verification.photos.push(...uploadedFiles);
+
     if (verification.status === "ASSIGNED") {
       verification.status = "IN_PROGRESS";
       verification.startedAt = new Date();
@@ -1014,11 +991,12 @@ export const uploadPhoto = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Photo uploaded successfully.",
-      data: verification.photos[verification.photos.length - 1],
+      message: "Photos uploaded successfully.",
+      data: uploadedFiles,
     });
+
   } catch (error) {
-    console.error("Upload Photo Error:", error);
+    console.error("Upload Photos Error:", error);
 
     return res.status(500).json({
       success: false,
