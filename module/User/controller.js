@@ -849,7 +849,7 @@ export const getKycProgress = async (req, res) => {
 
 export const saveFcmToken = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const accountId = req.user._id;
     const { fcmToken } = req.body;
 
     if (!fcmToken) {
@@ -859,8 +859,71 @@ export const saveFcmToken = async (req, res) => {
       });
     }
 
+    // =====================================
+    // CHECK ACCOUNT TYPE
+    // =====================================
+
+    const role = req.user.role;
+
+    // =====================================
+    // EMPLOYEE
+    // =====================================
+
+    const employeeRoles = [
+      "SUPER_ADMIN",
+      "ADMIN",
+      "MANAGER",
+      "RECOVERY_MANAGER",
+      "VISITOR",
+      "CREDIT_ANALYST",
+      "DISBURSEMENT_OFFICER",
+      "COLLECTION_AGENT",
+      "CUSTOMER_SUPPORT",
+      "AUDITOR",
+    ];
+
+    if (employeeRoles.includes(role)) {
+      const employee = await Employee.findOneAndUpdate(
+        {
+          _id: accountId,
+          isDeleted: false,
+        },
+        {
+          $set: {
+            fcmToken: fcmToken,
+          },
+        },
+        {
+          new: true,
+        }
+      ).select("_id employeeId fullName fcmToken");
+
+      if (!employee) {
+        return res.status(404).json({
+          success: false,
+          message: "Employee not found.",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "FCM token saved successfully.",
+        data: {
+          accountType: "EMPLOYEE",
+          employeeId: employee._id,
+          employeeCode: employee.employeeId,
+          fullName: employee.fullName,
+          fcmToken: employee.fcmToken,
+        },
+      });
+    }
+
+    // =====================================
+    // CUSTOMER / USER
+    // =====================================
+
     const user = await User.findByIdAndUpdate(
-      userId,
+      accountId,
       {
         $set: {
           fcmToken: fcmToken,
@@ -882,6 +945,7 @@ export const saveFcmToken = async (req, res) => {
       success: true,
       message: "FCM token saved successfully.",
       data: {
+        accountType: "CUSTOMER",
         userId: user._id,
         fullName: user.fullName,
         fcmToken: user.fcmToken,
