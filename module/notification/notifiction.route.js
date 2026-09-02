@@ -8,7 +8,7 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
-  deleteAllNotifications,testWhatsapp
+  deleteAllNotifications,testWhatsapp,getEmployeeNotifications
 } from "./notification.controller.js";
 
 const router = express.Router();
@@ -62,7 +62,11 @@ router.delete(
   protect,
   deleteNotification
 );
-
+router.get(
+  "/employee",
+  protect,
+  getEmployeeNotifications
+);
 
 router.post(
     "/test-whatsapp",
