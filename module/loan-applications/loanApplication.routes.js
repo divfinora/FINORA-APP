@@ -27,7 +27,7 @@ import {
   saveWitness,
   getVerificationDetails,
   getMyApplications,
-  getApplicationProgress,getVisitorDashboard,getVerificationReview,uploadFile,getVerificationSummary
+  getApplicationProgress,getVisitorDashboard,getVerificationReview,uploadFile,getVerificationSummary,saveSiteDetails
 } from "./controller/loanApproval.controller.js";
 
 const router = express.Router();
@@ -110,6 +110,13 @@ router.post(
   upload.array("files", 10),
   uploadPhotos
 );
+
+
+router.patch(
+  "/:loanId/site-details",
+  protect,
+  saveSiteDetails
+)
 
 router.patch(
   "/:loanId/witness",

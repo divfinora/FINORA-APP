@@ -300,3 +300,119 @@ export const deleteAllNotifications =
   
     }
   };
+
+
+
+  export const getEmployeeNotifications = async (req, res) => {
+  try {
+    const page = Math.max(
+      Number(req.query.page) || 1,
+      1
+    );
+
+    const limit = Math.min(
+      Math.max(Number(req.query.limit) || 20, 1),
+      100
+    );
+
+    const filterType = (
+      req.query.filter || "ALL"
+    ).toUpperCase();
+
+    const skip = (page - 1) * limit;
+
+    // ==========================================
+    // BASE FILTER
+    // ==========================================
+
+    const filter = {
+      user: req.user._id,
+      visible: true,
+    };
+
+    // ==========================================
+    // FILTER
+    // ==========================================
+
+    if (filterType === "ASSIGNMENT") {
+      filter.type = {
+        $in: [
+          "LOAN",
+          "KYC",
+        ],
+      };
+    }
+
+    if (filterType === "REMINDER") {
+      filter.type = {
+        $in: [
+          "EMI_REMINDER",
+          "PROMISE_REMINDER",
+          "FOLLOWUP_REMINDER",
+          "LEGAL_NOTICE",
+        ],
+      };
+    }
+
+    // ==========================================
+    // FETCH
+    // ==========================================
+
+    const [
+      notifications,
+      total,
+      unreadCount,
+    ] = await Promise.all([
+      Notification.find(filter)
+        .sort({
+          createdAt: -1,
+        })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Notification.countDocuments(filter),
+
+      Notification.countDocuments({
+        user: req.user._id,
+        visible: true,
+        read: false,
+      }),
+    ]);
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
+
+    return res.status(200).json({
+      success: true,
+
+      filter: filterType,
+
+      unreadCount,
+
+      data: notifications,
+
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(
+          total / limit
+        ),
+      },
+    });
+
+  } catch (error) {
+    console.error(
+      "Get Employee Notifications Error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to fetch employee notifications",
+    });
+  }
+};

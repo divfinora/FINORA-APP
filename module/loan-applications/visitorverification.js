@@ -188,6 +188,38 @@ const visitorVerificationSchema = new mongoose.Schema(
       },
     ],
 
+
+    // ======================================
+// SITE DETAILS
+// ======================================
+
+siteDetails: {
+  photos: [
+    {
+      name: {
+        type: String,
+        trim: true,
+      },
+
+      url: {
+        type: String,
+        required: true,
+        trim: true,
+      },
+
+      publicId: {
+        type: String,
+        trim: true,
+      },
+
+      uploadedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+  ],
+},
+
     // ======================================
     // VERIFICATION VIDEOS
     // ======================================

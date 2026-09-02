@@ -1,5 +1,5 @@
 import express from "express";
-import { getProfile,getVerificationStatus,getKycProgress} from "./controller.js";
+import { getProfile,getVerificationStatus,getKycProgress,getEmpProfile, updateEmpProfile,saveFcmToken} from "./controller.js";
 import { protect } from "../../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -17,5 +17,17 @@ router.get(
   getKycProgress
 );
 
+router.get("/my-profile", protect, getEmpProfile);
+router.patch(
+  "/my-profile",
+  protect,
+  updateEmpProfile
+);
+
+router.patch(
+  "/fcm-token",
+  protect,
+  saveFcmToken
+);
 
 export default router;
