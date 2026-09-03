@@ -896,7 +896,13 @@ export const saveInvestigation = async (req, res) => {
       location,
       recommendation,
       remarks,
+      description,
     } = req.body;
+
+    // Description is optional
+    if (description !== undefined) {
+      verification.description = description;
+    }
 
     // Investigation data is optional
     if (investigation !== undefined) {
@@ -904,17 +910,27 @@ export const saveInvestigation = async (req, res) => {
     }
 
     // Location is optional
+    // GPS location OR manual address - both supported
     if (location !== undefined) {
       verification.location = location;
     }
 
     // Recommendation is optional
-    if (recommendation !== undefined) {
+    // Ignore empty string
+    if (
+      recommendation !== undefined &&
+      recommendation !== null &&
+      recommendation !== ""
+    ) {
       verification.recommendation = recommendation;
     }
 
     // Investigation remark
     if (remarks !== undefined) {
+      if (!verification.investigation) {
+        verification.investigation = {};
+      }
+
       verification.investigation.remarks = remarks;
     }
 

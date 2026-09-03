@@ -33,7 +33,10 @@ const visitorVerificationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
+description: {
+  type: String,
+  trim: true,
+},
     visitor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",
