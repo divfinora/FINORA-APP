@@ -2494,12 +2494,11 @@ export const getVerificationSummary = async (req, res) => {
     const { loanId } = req.params;
 
     // ==========================================
-    // FIND VERIFICATION
+    // FIND VERIFICATION BY LOAN ID
     // ==========================================
 
     const verification = await VisitorVerification.findOne({
       loan: loanId,
-      visitor: req.user._id,
     })
       .populate("customer", "fullName mobile")
       .populate("loan", "applicationId amount status stage");
@@ -2507,7 +2506,7 @@ export const getVerificationSummary = async (req, res) => {
     if (!verification) {
       return res.status(404).json({
         success: false,
-        message: "Verification not found.",
+        message: "Verification not found for this loan.",
       });
     }
 
@@ -2526,6 +2525,9 @@ export const getVerificationSummary = async (req, res) => {
     const allPhotos = verification.photos || [];
     const allDocuments = verification.documents || [];
     const allVideos = verification.videos || [];
+
+    // Description is ROOT LEVEL in VisitorVerification schema
+    const description = verification.description || "";
 
     const editable = verification.status !== "SUBMITTED";
 
@@ -2558,13 +2560,11 @@ export const getVerificationSummary = async (req, res) => {
 
     const siteDetailsCompleted =
       sitePhotos.length > 0 ||
-      (
-        location.latitude !== undefined &&
-        location.longitude !== undefined
-      );
+      (location.latitude !== undefined &&
+        location.longitude !== undefined);
 
     // ==========================================
-    // PHOTOS
+    // PHOTO CATEGORIES
     // ==========================================
 
     const verificationCategories = [
@@ -2583,7 +2583,7 @@ export const getVerificationSummary = async (req, res) => {
       .map((photo) => ({
         category: photo.category,
         name: photo.name || null,
-        url: photo.url,
+        url: photo.url || null,
         publicId: photo.publicId || null,
         uploadedAt: photo.uploadedAt || null,
       }));
@@ -2593,7 +2593,7 @@ export const getVerificationSummary = async (req, res) => {
       .map((photo) => ({
         category: photo.category,
         name: photo.name || null,
-        url: photo.url,
+        url: photo.url || null,
         publicId: photo.publicId || null,
         uploadedAt: photo.uploadedAt || null,
       }));
@@ -2603,7 +2603,7 @@ export const getVerificationSummary = async (req, res) => {
       .map((photo) => ({
         category: photo.category,
         name: photo.name || null,
-        url: photo.url,
+        url: photo.url || null,
         publicId: photo.publicId || null,
         uploadedAt: photo.uploadedAt || null,
       }));
@@ -2613,7 +2613,7 @@ export const getVerificationSummary = async (req, res) => {
       .map((photo) => ({
         category: photo.category,
         name: photo.name || null,
-        url: photo.url,
+        url: photo.url || null,
         publicId: photo.publicId || null,
         uploadedAt: photo.uploadedAt || null,
       }));
@@ -2631,8 +2631,7 @@ export const getVerificationSummary = async (req, res) => {
     // WITNESS
     // ==========================================
 
-    const witnessCompleted =
-      witness.agreed === true;
+    const witnessCompleted = witness.agreed === true;
 
     // ==========================================
     // CUSTOMER CONSENT
@@ -2649,7 +2648,7 @@ export const getVerificationSummary = async (req, res) => {
       visitorDeclaration.accepted === true;
 
     // ==========================================
-    // FINAL DECLARATION / SUBMIT
+    // FINAL DECLARATION
     // ==========================================
 
     const finalDeclarationCompleted =
@@ -2703,8 +2702,7 @@ export const getVerificationSummary = async (req, res) => {
     const totalSections =
       Object.keys(sectionStatus).length;
 
-    const readyForSubmit =
-      missing.length === 0;
+    const readyForSubmit = missing.length === 0;
 
     // ==========================================
     // PROGRESS
@@ -2730,6 +2728,12 @@ export const getVerificationSummary = async (req, res) => {
         header: {
           jobId: verification.jobId,
           verificationId: verification.verificationId,
+
+          loanId:
+            verification.loan?._id ||
+            verification.loan ||
+            loanId,
+
           status: verification.status,
 
           progress: {
@@ -2752,15 +2756,15 @@ export const getVerificationSummary = async (req, res) => {
         customer: verification.customer,
 
         // ======================================
-        // INVESTIGATION DETAILS SCREEN
+        // INVESTIGATION DETAILS
         // ======================================
 
         investigationDetails: {
           completed: investigationCompleted,
           editable,
 
-          // Actual saved Investigation fields
-          description: investigation.description || "",
+          // ROOT LEVEL DESCRIPTION
+          description,
 
           customerAvailable:
             investigation.customerAvailable ?? false,
@@ -2795,7 +2799,6 @@ export const getVerificationSummary = async (req, res) => {
           remarks:
             investigation.remarks || "",
 
-          // Property Location
           location: {
             latitude:
               location.latitude ?? null,
@@ -2807,20 +2810,21 @@ export const getVerificationSummary = async (req, res) => {
               location.address || "",
           },
 
-          // Recommendation shown on Investigation screen
           recommendation:
             verification.recommendation || null,
         },
 
         // ======================================
-        // SITE DETAILS SCREEN
+        // SITE DETAILS
         // ======================================
 
         siteDetails: {
           completed: siteDetailsCompleted,
           editable,
 
-          // Location
+          // DESCRIPTION
+          description,
+
           latitude:
             location.latitude ?? null,
 
@@ -2830,17 +2834,16 @@ export const getVerificationSummary = async (req, res) => {
           address:
             location.address || "",
 
-          // Site Details photos
           photos: sitePhotos.map((photo) => ({
             name: photo.name || null,
-            url: photo.url,
+            url: photo.url || null,
             publicId: photo.publicId || null,
             uploadedAt: photo.uploadedAt || null,
           })),
         },
 
         // ======================================
-        // PHOTOS SCREEN
+        // PHOTOS
         // ======================================
 
         photos: {
@@ -2869,12 +2872,12 @@ export const getVerificationSummary = async (req, res) => {
             items: otherPhotos,
           },
 
-          // Site photos separately
           sitePhotos: {
             count: sitePhotos.length,
+
             items: sitePhotos.map((photo) => ({
               name: photo.name || null,
-              url: photo.url,
+              url: photo.url || null,
               publicId: photo.publicId || null,
               uploadedAt: photo.uploadedAt || null,
             })),
@@ -2882,7 +2885,7 @@ export const getVerificationSummary = async (req, res) => {
         },
 
         // ======================================
-        // DOCUMENTS SCREEN
+        // DOCUMENTS
         // ======================================
 
         documents: {
@@ -2895,7 +2898,7 @@ export const getVerificationSummary = async (req, res) => {
         },
 
         // ======================================
-        // WITNESS VERIFICATION SCREEN
+        // WITNESS DETAILS
         // ======================================
 
         witnessDetails: {
@@ -2911,7 +2914,6 @@ export const getVerificationSummary = async (req, res) => {
           relation:
             witness.relation || "",
 
-          // If these fields exist in your schema
           idType:
             witness.idType || "",
 
@@ -2953,7 +2955,31 @@ export const getVerificationSummary = async (req, res) => {
         },
 
         // ======================================
-        // REVIEW INFORMATION SCREEN
+        // VISITOR DECLARATION
+        // ======================================
+
+        visitorDeclaration: {
+          completed: visitorDeclarationCompleted,
+          editable,
+
+          accepted:
+            visitorDeclaration.accepted ?? false,
+
+          signature:
+            visitorDeclaration.signature || "",
+
+          reviewedBy:
+            visitorDeclaration.reviewedBy || null,
+
+          reviewedAt:
+            visitorDeclaration.reviewedAt || null,
+
+          declaredAt:
+            visitorDeclaration.declaredAt || null,
+        },
+
+        // ======================================
+        // REVIEW DETAILS
         // ======================================
 
         reviewDetails: {
@@ -2965,8 +2991,7 @@ export const getVerificationSummary = async (req, res) => {
             completed: investigationCompleted,
 
             data: {
-              description:
-                investigation.description || "",
+              description,
 
               customerAvailable:
                 investigation.customerAvailable ?? false,
@@ -3020,6 +3045,8 @@ export const getVerificationSummary = async (req, res) => {
           siteDetails: {
             completed: siteDetailsCompleted,
 
+            description,
+
             latitude:
               location.latitude ?? null,
 
@@ -3034,8 +3061,10 @@ export const getVerificationSummary = async (req, res) => {
 
           photos: {
             completed: photosCompleted,
+
             count:
               allPhotos.length + sitePhotos.length,
+
             items: [
               ...allPhotos,
               ...sitePhotos,
@@ -3065,31 +3094,7 @@ export const getVerificationSummary = async (req, res) => {
         },
 
         // ======================================
-        // VISITOR DECLARATION
-        // ======================================
-
-        visitorDeclaration: {
-          completed: visitorDeclarationCompleted,
-          editable,
-
-          accepted:
-            visitorDeclaration.accepted ?? false,
-
-          signature:
-            visitorDeclaration.signature || "",
-
-          reviewedBy:
-            visitorDeclaration.reviewedBy || null,
-
-          reviewedAt:
-            visitorDeclaration.reviewedAt || null,
-
-          declaredAt:
-            visitorDeclaration.declaredAt || null,
-        },
-
-        // ======================================
-        // SUBMIT VERIFICATION SCREEN
+        // SUBMIT VERIFICATION
         // ======================================
 
         submitVerification: {
