@@ -990,18 +990,53 @@ export const uploadPhotos = async (req, res) => {
     const uploadedFiles = [];
 
     for (const file of req.files) {
+      const category = req.body.category;
+
+      if (!category) {
+        return res.status(400).json({
+          success: false,
+          message: "Photo category is required.",
+        });
+      }
+
+      const allowedCategories = [
+        "CUSTOMER",
+        "CUSTOMER_SELFIE",
+        "HOUSE_FRONT",
+        "HOUSE_INSIDE",
+        "SHOP",
+        "OFFICE",
+        "DOCUMENT",
+        "WITNESS",
+        "OTHER",
+      ];
+
+      if (!allowedCategories.includes(category)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid photo category.",
+        });
+      }
+
       const uploaded = await uploadToCloudinary(
         file.buffer,
         `visitor-verification/${loanId}/photos`
       );
 
-      uploadedFiles.push({
+      const photoData = {
+        category,
         name: file.originalname,
         url: uploaded.secure_url,
         publicId: uploaded.public_id,
         uploadedAt: new Date(),
-      });
+      };
+
+      verification.photos.push(photoData);
+
+      uploadedFiles.push(photoData);
     }
+
+    await verification.save();
 
     return res.status(201).json({
       success: true,
