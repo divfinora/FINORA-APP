@@ -33,10 +33,12 @@ const visitorVerificationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-description: {
-  type: String,
-  trim: true,
-},
+
+    description: {
+      type: String,
+      trim: true,
+    },
+
     visitor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Employee",
@@ -50,7 +52,13 @@ description: {
 
     status: {
       type: String,
-      enum: ["ASSIGNED", "IN_PROGRESS", "SUBMITTED", "APPROVED", "REJECTED"],
+      enum: [
+        "ASSIGNED",
+        "IN_PROGRESS",
+        "SUBMITTED",
+        "APPROVED",
+        "REJECTED",
+      ],
       default: "ASSIGNED",
       index: true,
     },
@@ -147,25 +155,19 @@ description: {
 
     // ======================================
     // VERIFICATION PHOTOS
-    // Actual image is NOT stored in DB.
-    // Only Cloudinary metadata is stored.
+    // ======================================
+    // category can contain ANY text.
+    // No enum restriction.
+    // Actual image is stored on Cloudinary.
+    // Only Cloudinary metadata is stored in DB.
     // ======================================
 
     photos: [
       {
         category: {
           type: String,
-          enum: [
-            "CUSTOMER",
-            "CUSTOMER_SELFIE",
-            "HOUSE_FRONT",
-            "HOUSE_INSIDE",
-            "SHOP",
-            "OFFICE",
-            "DOCUMENT",
-            "WITNESS",
-            "OTHER",
-          ],
+          required: true,
+          trim: true,
         },
 
         name: {
@@ -191,37 +193,36 @@ description: {
       },
     ],
 
-
     // ======================================
-// SITE DETAILS
-// ======================================
+    // SITE DETAILS
+    // ======================================
 
-siteDetails: {
-  photos: [
-    {
-      name: {
-        type: String,
-        trim: true,
-      },
+    siteDetails: {
+      photos: [
+        {
+          name: {
+            type: String,
+            trim: true,
+          },
 
-      url: {
-        type: String,
-        required: true,
-        trim: true,
-      },
+          url: {
+            type: String,
+            required: true,
+            trim: true,
+          },
 
-      publicId: {
-        type: String,
-        trim: true,
-      },
+          publicId: {
+            type: String,
+            trim: true,
+          },
 
-      uploadedAt: {
-        type: Date,
-        default: Date.now,
-      },
+          uploadedAt: {
+            type: Date,
+            default: Date.now,
+          },
+        },
+      ],
     },
-  ],
-},
 
     // ======================================
     // VERIFICATION VIDEOS
@@ -391,10 +392,7 @@ siteDetails: {
         trim: true,
       },
 
-      // ------------------------------------
-      // Witness Signatures - Maximum 2
-      // ------------------------------------
-
+      // Maximum 2 signatures
       signatures: [
         {
           name: {
@@ -414,10 +412,7 @@ siteDetails: {
         },
       ],
 
-      // ------------------------------------
-      // Witness Photos - Maximum 2
-      // ------------------------------------
-
+      // Maximum 2 photos
       photos: [
         {
           name: {
@@ -437,10 +432,7 @@ siteDetails: {
         },
       ],
 
-      // ------------------------------------
-      // Witness Documents - Maximum 10
-      // ------------------------------------
-
+      // Maximum 10 documents
       documents: [
         {
           docTypeName: {
@@ -574,7 +566,7 @@ siteDetails: {
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 // ==========================================
@@ -598,4 +590,7 @@ visitorVerificationSchema.index({
 // MODEL
 // ==========================================
 
-export default mongoose.model("VisitorVerification", visitorVerificationSchema);
+export default mongoose.model(
+  "VisitorVerification",
+  visitorVerificationSchema
+);

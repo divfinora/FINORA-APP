@@ -961,6 +961,7 @@ export const uploadPhotos = async (req, res) => {
   try {
     const { loanId } = req.params;
 
+    // Check files
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
         success: false,
@@ -968,6 +969,17 @@ export const uploadPhotos = async (req, res) => {
       });
     }
 
+    // Check category
+    const category = req.body.category?.trim();
+
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: "Photo category is required.",
+      });
+    }
+
+    // Find verification
     const verification = await VisitorVerification.findOne({
       loan: loanId,
       visitor: req.user._id,
@@ -980,6 +992,7 @@ export const uploadPhotos = async (req, res) => {
       });
     }
 
+    // Already submitted
     if (verification.status === "SUBMITTED") {
       return res.status(400).json({
         success: false,
@@ -989,35 +1002,8 @@ export const uploadPhotos = async (req, res) => {
 
     const uploadedFiles = [];
 
+    // Upload all photos
     for (const file of req.files) {
-      const category = req.body.category;
-
-      if (!category) {
-        return res.status(400).json({
-          success: false,
-          message: "Photo category is required.",
-        });
-      }
-
-      const allowedCategories = [
-        "CUSTOMER",
-        "CUSTOMER_SELFIE",
-        "HOUSE_FRONT",
-        "HOUSE_INSIDE",
-        "SHOP",
-        "OFFICE",
-        "DOCUMENT",
-        "WITNESS",
-        "OTHER",
-      ];
-
-      if (!allowedCategories.includes(category)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid photo category.",
-        });
-      }
-
       const uploaded = await uploadToCloudinary(
         file.buffer,
         `visitor-verification/${loanId}/photos`
@@ -1031,9 +1017,16 @@ export const uploadPhotos = async (req, res) => {
         uploadedAt: new Date(),
       };
 
+      // Save in verification.photos
       verification.photos.push(photoData);
 
       uploadedFiles.push(photoData);
+    }
+
+    // Change status when first photo is uploaded
+    if (verification.status === "ASSIGNED") {
+      verification.status = "IN_PROGRESS";
+      verification.startedAt = new Date();
     }
 
     await verification.save();
@@ -1043,7 +1036,6 @@ export const uploadPhotos = async (req, res) => {
       message: "Photos uploaded successfully.",
       data: uploadedFiles,
     });
-
   } catch (error) {
     console.error("Upload Photos Error:", error);
 
@@ -1053,7 +1045,6 @@ export const uploadPhotos = async (req, res) => {
     });
   }
 };
-
 
 
 export const saveSiteDetails = async (req, res) => {
