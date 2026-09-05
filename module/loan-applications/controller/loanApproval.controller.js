@@ -2518,18 +2518,23 @@ export const getVerificationSummary = async (req, res) => {
     const location = verification.location || {};
     const siteDetails = verification.siteDetails || {};
     const witness = verification.witness || {};
-    const customerConsent = verification.customerConsent || {};
-    const visitorDeclaration = verification.visitorDeclaration || {};
-    const finalDeclaration = verification.finalDeclaration || {};
+    const customerConsent =
+      verification.customerConsent || {};
+    const visitorDeclaration =
+      verification.visitorDeclaration || {};
+    const finalDeclaration =
+      verification.finalDeclaration || {};
 
     const allPhotos = verification.photos || [];
     const allDocuments = verification.documents || [];
     const allVideos = verification.videos || [];
 
-    // Description is ROOT LEVEL in VisitorVerification schema
-    const description = verification.description || "";
+    // ROOT LEVEL DESCRIPTION
+    const description =
+      verification.description || "";
 
-    const editable = verification.status !== "SUBMITTED";
+    const editable =
+      verification.status !== "SUBMITTED";
 
     // ==========================================
     // INVESTIGATION COMPLETION
@@ -2548,20 +2553,66 @@ export const getVerificationSummary = async (req, res) => {
       "neighboursVerified",
     ];
 
-    const investigationCompleted = investigationFields.every(
-      (field) => investigation[field] === true
-    );
+    const investigationCompleted =
+      investigationFields.every(
+        (field) => investigation[field] === true
+      );
 
     // ==========================================
     // SITE DETAILS
     // ==========================================
 
-    const sitePhotos = siteDetails.photos || [];
+    const sitePhotos =
+      siteDetails.photos || [];
+
+    const hasGps =
+      location.latitude !== null &&
+      location.latitude !== undefined &&
+      location.longitude !== null &&
+      location.longitude !== undefined;
+
+    const hasAddress =
+      typeof location.address === "string" &&
+      location.address.trim() !== "";
+
+    const hasSitePhotos =
+      sitePhotos.length > 0;
 
     const siteDetailsCompleted =
-      sitePhotos.length > 0 ||
-      (location.latitude !== undefined &&
-        location.longitude !== undefined);
+      hasSitePhotos ||
+      hasGps ||
+      hasAddress;
+
+    // ==========================================
+    // PHOTO CLEANER
+    // ==========================================
+    // Local file:// URL ko valid uploaded URL
+    // nahi maana jayega.
+    // ==========================================
+
+    const cleanPhoto = (photo) => {
+      const isLocalFile =
+        typeof photo.url === "string" &&
+        photo.url.startsWith("file://");
+
+      return {
+        category: photo.category || null,
+
+        name:
+          photo.name || null,
+
+        // Only Cloudinary/remote URL
+        url: isLocalFile
+          ? null
+          : photo.url || null,
+
+        publicId:
+          photo.publicId || null,
+
+        uploadedAt:
+          photo.uploadedAt || null,
+      };
+    };
 
     // ==========================================
     // PHOTO CATEGORIES
@@ -2578,60 +2629,94 @@ export const getVerificationSummary = async (req, res) => {
 
     const verificationPhotos = allPhotos
       .filter((photo) =>
-        verificationCategories.includes(photo.category)
+        verificationCategories.includes(
+          photo.category
+        )
       )
-      .map((photo) => ({
-        category: photo.category,
-        name: photo.name || null,
-        url: photo.url || null,
-        publicId: photo.publicId || null,
-        uploadedAt: photo.uploadedAt || null,
-      }));
+      .map(cleanPhoto);
 
     const witnessPhotos = allPhotos
-      .filter((photo) => photo.category === "WITNESS")
-      .map((photo) => ({
-        category: photo.category,
-        name: photo.name || null,
-        url: photo.url || null,
-        publicId: photo.publicId || null,
-        uploadedAt: photo.uploadedAt || null,
-      }));
+      .filter(
+        (photo) =>
+          photo.category === "WITNESS"
+      )
+      .map(cleanPhoto);
 
     const documentPhotos = allPhotos
-      .filter((photo) => photo.category === "DOCUMENT")
-      .map((photo) => ({
-        category: photo.category,
-        name: photo.name || null,
-        url: photo.url || null,
-        publicId: photo.publicId || null,
-        uploadedAt: photo.uploadedAt || null,
-      }));
+      .filter(
+        (photo) =>
+          photo.category === "DOCUMENT"
+      )
+      .map(cleanPhoto);
 
     const otherPhotos = allPhotos
-      .filter((photo) => photo.category === "OTHER")
-      .map((photo) => ({
-        category: photo.category,
-        name: photo.name || null,
-        url: photo.url || null,
-        publicId: photo.publicId || null,
-        uploadedAt: photo.uploadedAt || null,
-      }));
+      .filter(
+        (photo) =>
+          photo.category === "OTHER"
+      )
+      .map(cleanPhoto);
+
+    // ==========================================
+    // CLEAN SITE PHOTOS
+    // ==========================================
+
+    const cleanSitePhotos =
+      sitePhotos.map((photo) => {
+        const isLocalFile =
+          typeof photo.url === "string" &&
+          photo.url.startsWith("file://");
+
+        return {
+          name:
+            photo.name || null,
+
+          url: isLocalFile
+            ? null
+            : photo.url || null,
+
+          publicId:
+            photo.publicId || null,
+
+          uploadedAt:
+            photo.uploadedAt || null,
+        };
+      });
+
+    // ==========================================
+    // PHOTO COMPLETION
+    // ==========================================
+
+    const validPhotoCount =
+      allPhotos.filter(
+        (photo) =>
+          photo.url &&
+          !photo.url.startsWith("file://")
+      ).length;
+
+    const validSitePhotoCount =
+      sitePhotos.filter(
+        (photo) =>
+          photo.url &&
+          !photo.url.startsWith("file://")
+      ).length;
 
     const photosCompleted =
-      allPhotos.length > 0 || sitePhotos.length > 0;
+      validPhotoCount > 0 ||
+      validSitePhotoCount > 0;
 
     // ==========================================
     // DOCUMENTS
     // ==========================================
 
-    const documentsCompleted = allDocuments.length > 0;
+    const documentsCompleted =
+      allDocuments.length > 0;
 
     // ==========================================
     // WITNESS
     // ==========================================
 
-    const witnessCompleted = witness.agreed === true;
+    const witnessCompleted =
+      witness.agreed === true;
 
     // ==========================================
     // CUSTOMER CONSENT
@@ -2677,40 +2762,112 @@ export const getVerificationSummary = async (req, res) => {
 
     const sectionStatus = {
       verification: true,
-      investigation: investigationCompleted,
-      siteDetails: siteDetailsCompleted,
-      photos: photosCompleted,
-      documents: documentsCompleted,
-      witness: witnessCompleted,
-      customerConsent: customerConsentCompleted,
-      visitorDeclaration: visitorDeclarationCompleted,
-      remarks: remarksCompleted,
-      recommendation: recommendationCompleted,
+      investigation:
+        investigationCompleted,
+      siteDetails:
+        siteDetailsCompleted,
+      photos:
+        photosCompleted,
+      documents:
+        documentsCompleted,
+      witness:
+        witnessCompleted,
+      customerConsent:
+        customerConsentCompleted,
+      visitorDeclaration:
+        visitorDeclarationCompleted,
+      remarks:
+        remarksCompleted,
+      recommendation:
+        recommendationCompleted,
     };
 
     // ==========================================
     // MISSING SECTIONS
     // ==========================================
 
-    const missing = Object.entries(sectionStatus)
-      .filter(([_, completed]) => !completed)
-      .map(([section]) => section.toUpperCase());
+    const missing = Object.entries(
+      sectionStatus
+    )
+      .filter(
+        ([_, completed]) =>
+          !completed
+      )
+      .map(
+        ([section]) =>
+          section.toUpperCase()
+      );
 
     const completedSections =
-      Object.values(sectionStatus).filter(Boolean).length;
+      Object.values(
+        sectionStatus
+      ).filter(Boolean).length;
 
     const totalSections =
-      Object.keys(sectionStatus).length;
+      Object.keys(
+        sectionStatus
+      ).length;
 
-    const readyForSubmit = missing.length === 0;
+    const readyForSubmit =
+      missing.length === 0;
 
     // ==========================================
     // PROGRESS
     // ==========================================
 
-    const percentage = Math.round(
-      (completedSections / totalSections) * 100
-    );
+    const percentage =
+      totalSections > 0
+        ? Math.round(
+            (completedSections /
+              totalSections) *
+              100
+          )
+        : 0;
+
+    // ==========================================
+    // PHOTO SUMMARY
+    // ==========================================
+
+    const photoSummary = {
+      total:
+        validPhotoCount +
+        validSitePhotoCount,
+
+      witness: {
+        count:
+          witnessPhotos.length,
+        photos:
+          witnessPhotos,
+      },
+
+      verification: {
+        count:
+          verificationPhotos.length,
+        photos:
+          verificationPhotos,
+      },
+
+      document: {
+        count:
+          documentPhotos.length,
+        photos:
+          documentPhotos,
+      },
+
+      other: {
+        count:
+          otherPhotos.length,
+        photos:
+          otherPhotos,
+      },
+
+      site: {
+        count:
+          validSitePhotoCount,
+        photos:
+          cleanSitePhotos,
+      },
+    };
 
     // ==========================================
     // RESPONSE
@@ -2718,7 +2875,9 @@ export const getVerificationSummary = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Verification summary fetched successfully.",
+
+      message:
+        "Verification summary fetched successfully.",
 
       data: {
         // ======================================
@@ -2726,19 +2885,28 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         header: {
-          jobId: verification.jobId,
-          verificationId: verification.verificationId,
+          jobId:
+            verification.jobId,
+
+          verificationId:
+            verification.verificationId,
 
           loanId:
-            verification.loan?._id ||
-            verification.loan ||
+            verification.loan?._id?.toString() ||
             loanId,
 
-          status: verification.status,
+          status:
+            verification.status,
+
+          editable,
 
           progress: {
-            completedSteps: completedSections,
-            totalSteps: totalSections,
+            completedSteps:
+              completedSections,
+
+            totalSteps:
+              totalSections,
+
             percentage,
           },
         },
@@ -2747,54 +2915,73 @@ export const getVerificationSummary = async (req, res) => {
         // LOAN
         // ======================================
 
-        loan: verification.loan,
+        loan:
+          verification.loan,
 
         // ======================================
         // CUSTOMER
         // ======================================
 
-        customer: verification.customer,
+        customer:
+          verification.customer,
 
         // ======================================
-        // INVESTIGATION DETAILS
+        // DESCRIPTION
+        // ======================================
+
+        description,
+
+        // ======================================
+        // INVESTIGATION
         // ======================================
 
         investigationDetails: {
-          completed: investigationCompleted,
+          completed:
+            investigationCompleted,
+
           editable,
 
-          // ROOT LEVEL DESCRIPTION
           description,
 
           customerAvailable:
-            investigation.customerAvailable ?? false,
+            investigation.customerAvailable ??
+            false,
 
           customerVerified:
-            investigation.customerVerified ?? false,
+            investigation.customerVerified ??
+            false,
 
           addressVerified:
-            investigation.addressVerified ?? false,
+            investigation.addressVerified ??
+            false,
 
           employmentVerified:
-            investigation.employmentVerified ?? false,
+            investigation.employmentVerified ??
+            false,
 
           businessVerified:
-            investigation.businessVerified ?? false,
+            investigation.businessVerified ??
+            false,
 
           incomeVerified:
-            investigation.incomeVerified ?? false,
+            investigation.incomeVerified ??
+            false,
 
           originalDocumentsVerified:
-            investigation.originalDocumentsVerified ?? false,
+            investigation.originalDocumentsVerified ??
+            false,
 
           photocopiesCollected:
-            investigation.photocopiesCollected ?? false,
+            investigation.photocopiesCollected ??
+            false,
 
           houseVisited:
-            investigation.houseVisited ?? false,
+            investigation.houseVisited ??
+            false,
 
           neighboursVerified:
-            investigation.neighboursVerified ?? false,
+            investigation.neighboursVerified ??
+            false,
 
           remarks:
             investigation.remarks || "",
@@ -2811,7 +2998,8 @@ export const getVerificationSummary = async (req, res) => {
           },
 
           recommendation:
-            verification.recommendation || null,
+            verification.recommendation ||
+            null,
         },
 
         // ======================================
@@ -2819,10 +3007,11 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         siteDetails: {
-          completed: siteDetailsCompleted,
+          completed:
+            siteDetailsCompleted,
+
           editable,
 
-          // DESCRIPTION
           description,
 
           latitude:
@@ -2834,12 +3023,8 @@ export const getVerificationSummary = async (req, res) => {
           address:
             location.address || "",
 
-          photos: sitePhotos.map((photo) => ({
-            name: photo.name || null,
-            url: photo.url || null,
-            publicId: photo.publicId || null,
-            uploadedAt: photo.uploadedAt || null,
-          })),
+          photos:
+            cleanSitePhotos,
         },
 
         // ======================================
@@ -2847,40 +3032,53 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         photos: {
-          completed: photosCompleted,
+          completed:
+            photosCompleted,
+
           editable,
 
-          count: allPhotos.length,
+          count:
+            validPhotoCount +
+            validSitePhotoCount,
 
           verificationPhotos: {
-            count: verificationPhotos.length,
-            items: verificationPhotos,
+            count:
+              verificationPhotos.length,
+
+            items:
+              verificationPhotos,
           },
 
           witnessPhotos: {
-            count: witnessPhotos.length,
-            items: witnessPhotos,
+            count:
+              witnessPhotos.length,
+
+            items:
+              witnessPhotos,
           },
 
           documentPhotos: {
-            count: documentPhotos.length,
-            items: documentPhotos,
+            count:
+              documentPhotos.length,
+
+            items:
+              documentPhotos,
           },
 
           otherPhotos: {
-            count: otherPhotos.length,
-            items: otherPhotos,
+            count:
+              otherPhotos.length,
+
+            items:
+              otherPhotos,
           },
 
           sitePhotos: {
-            count: sitePhotos.length,
+            count:
+              validSitePhotoCount,
 
-            items: sitePhotos.map((photo) => ({
-              name: photo.name || null,
-              url: photo.url || null,
-              publicId: photo.publicId || null,
-              uploadedAt: photo.uploadedAt || null,
-            })),
+            items:
+              cleanSitePhotos,
           },
         },
 
@@ -2889,20 +3087,26 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         documents: {
-          completed: documentsCompleted,
+          completed:
+            documentsCompleted,
+
           editable,
 
-          count: allDocuments.length,
+          count:
+            allDocuments.length,
 
-          items: allDocuments,
+          items:
+            allDocuments,
         },
 
         // ======================================
-        // WITNESS DETAILS
+        // WITNESS
         // ======================================
 
         witnessDetails: {
-          completed: witnessCompleted,
+          completed:
+            witnessCompleted,
+
           editable,
 
           fullName:
@@ -2913,12 +3117,6 @@ export const getVerificationSummary = async (req, res) => {
 
           relation:
             witness.relation || "",
-
-          idType:
-            witness.idType || "",
-
-          idNumber:
-            witness.idNumber || "",
 
           signatures:
             witness.signatures || [],
@@ -2941,17 +3139,22 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         customerConsent: {
-          completed: customerConsentCompleted,
+          completed:
+            customerConsentCompleted,
+
           editable,
 
           accepted:
-            customerConsent.accepted ?? false,
+            customerConsent.accepted ??
+            false,
 
           signature:
-            customerConsent.signature || "",
+            customerConsent.signature ||
+            "",
 
           signedAt:
-            customerConsent.signedAt || null,
+            customerConsent.signedAt ||
+            null,
         },
 
         // ======================================
@@ -2959,23 +3162,30 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         visitorDeclaration: {
-          completed: visitorDeclarationCompleted,
+          completed:
+            visitorDeclarationCompleted,
+
           editable,
 
           accepted:
-            visitorDeclaration.accepted ?? false,
+            visitorDeclaration.accepted ??
+            false,
 
           signature:
-            visitorDeclaration.signature || "",
+            visitorDeclaration.signature ||
+            "",
 
           reviewedBy:
-            visitorDeclaration.reviewedBy || null,
+            visitorDeclaration.reviewedBy ||
+            null,
 
           reviewedAt:
-            visitorDeclaration.reviewedAt || null,
+            visitorDeclaration.reviewedAt ||
+            null,
 
           declaredAt:
-            visitorDeclaration.declaredAt || null,
+            visitorDeclaration.declaredAt ||
+            null,
         },
 
         // ======================================
@@ -2984,100 +3194,121 @@ export const getVerificationSummary = async (req, res) => {
 
         reviewDetails: {
           verification: {
-            completed: true,
+            completed:
+              readyForSubmit,
+
+            editable,
           },
 
           investigation: {
-            completed: investigationCompleted,
+            completed:
+              investigationCompleted,
+
+            editable,
 
             data: {
               description,
 
-              customerAvailable:
-                investigation.customerAvailable ?? false,
-
-              customerVerified:
-                investigation.customerVerified ?? false,
-
-              addressVerified:
-                investigation.addressVerified ?? false,
-
-              employmentVerified:
-                investigation.employmentVerified ?? false,
-
-              businessVerified:
-                investigation.businessVerified ?? false,
-
-              incomeVerified:
-                investigation.incomeVerified ?? false,
-
-              originalDocumentsVerified:
-                investigation.originalDocumentsVerified ?? false,
-
-              photocopiesCollected:
-                investigation.photocopiesCollected ?? false,
-
-              houseVisited:
-                investigation.houseVisited ?? false,
-
-              neighboursVerified:
-                investigation.neighboursVerified ?? false,
-
-              remarks:
-                investigation.remarks || "",
+              ...investigation,
 
               location: {
                 latitude:
-                  location.latitude ?? null,
+                  location.latitude ??
+                  null,
 
                 longitude:
-                  location.longitude ?? null,
+                  location.longitude ??
+                  null,
 
                 address:
-                  location.address || "",
+                  location.address ||
+                  "",
               },
 
               recommendation:
-                verification.recommendation || null,
+                verification.recommendation ||
+                null,
             },
           },
 
           siteDetails: {
-            completed: siteDetailsCompleted,
+            completed:
+              siteDetailsCompleted,
+
+            editable,
 
             description,
 
             latitude:
-              location.latitude ?? null,
+              location.latitude ??
+              null,
 
             longitude:
-              location.longitude ?? null,
+              location.longitude ??
+              null,
 
             address:
-              location.address || "",
+              location.address ||
+              "",
 
-            photos: sitePhotos,
+            photos:
+              cleanSitePhotos,
           },
 
           photos: {
-            completed: photosCompleted,
+            completed:
+              photosCompleted,
+
+            editable,
 
             count:
-              allPhotos.length + sitePhotos.length,
+              validPhotoCount +
+              validSitePhotoCount,
 
             items: [
-              ...allPhotos,
-              ...sitePhotos,
+              ...verificationPhotos,
+              ...witnessPhotos,
+              ...documentPhotos,
+              ...otherPhotos,
+              ...cleanSitePhotos,
             ],
           },
 
           witness: {
-            completed: witnessCompleted,
-            data: witness,
+            completed:
+              witnessCompleted,
+
+            editable,
+
+            data:
+              witness,
+          },
+
+          customerConsent: {
+            completed:
+              customerConsentCompleted,
+
+            editable,
+
+            data:
+              customerConsent,
+          },
+
+          visitorDeclaration: {
+            completed:
+              visitorDeclarationCompleted,
+
+            editable,
+
+            data:
+              visitorDeclaration,
           },
 
           remarks: {
-            completed: remarksCompleted,
+            completed:
+              remarksCompleted,
+
+            editable,
 
             value:
               verification.remarks ||
@@ -3086,10 +3317,14 @@ export const getVerificationSummary = async (req, res) => {
           },
 
           recommendation: {
-            completed: recommendationCompleted,
+            completed:
+              recommendationCompleted,
+
+            editable,
 
             value:
-              verification.recommendation || null,
+              verification.recommendation ||
+              null,
           },
         },
 
@@ -3098,32 +3333,38 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         submitVerification: {
-          completed: finalDeclarationCompleted,
+          completed:
+            finalDeclarationCompleted,
+
           editable,
 
           declaration: {
             informationCorrect:
-              finalDeclaration.informationCorrect ?? false,
+              finalDeclaration.informationCorrect ??
+              false,
 
             photosGenuine:
-              finalDeclaration.photosGenuine ?? false,
+              finalDeclaration.photosGenuine ??
+              false,
 
             investigationCompleted:
-              finalDeclaration.investigationCompleted ?? false,
+              finalDeclaration.investigationCompleted ??
+              false,
 
             acceptedAt:
-              finalDeclaration.acceptedAt || null,
+              finalDeclaration.acceptedAt ||
+              null,
           },
 
           submissionSummary: {
             filesAttached:
-              allPhotos.length +
-              sitePhotos.length +
+              validPhotoCount +
+              validSitePhotoCount +
               allDocuments.length,
 
             totalPhotos:
-              allPhotos.length +
-              sitePhotos.length,
+              validPhotoCount +
+              validSitePhotoCount,
 
             totalDocuments:
               allDocuments.length,
@@ -3132,7 +3373,8 @@ export const getVerificationSummary = async (req, res) => {
               allVideos.length,
 
             metadataStatus:
-              verification.status === "SUBMITTED"
+              verification.status ===
+              "SUBMITTED"
                 ? "Verified"
                 : "Pending",
 
@@ -3149,7 +3391,8 @@ export const getVerificationSummary = async (req, res) => {
 
         summary: {
           totalPhotos:
-            allPhotos.length + sitePhotos.length,
+            validPhotoCount +
+            validSitePhotoCount,
 
           totalDocuments:
             allDocuments.length,
@@ -3160,6 +3403,8 @@ export const getVerificationSummary = async (req, res) => {
           completedSections,
 
           totalSections,
+
+          percentage,
 
           readyForSubmit,
 
@@ -3172,16 +3417,20 @@ export const getVerificationSummary = async (req, res) => {
 
         timeline: {
           startedAt:
-            verification.startedAt || null,
+            verification.startedAt ||
+            null,
 
           submittedAt:
-            verification.submittedAt || null,
+            verification.submittedAt ||
+            null,
 
           completedAt:
-            verification.completedAt || null,
+            verification.completedAt ||
+            null,
 
           lastSavedAt:
-            verification.updatedAt || null,
+            verification.updatedAt ||
+            null,
         },
       },
     });
