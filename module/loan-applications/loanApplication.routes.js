@@ -27,7 +27,7 @@ import {
   saveWitness,
   getVerificationDetails,
   getMyApplications,
-  getApplicationProgress,getVisitorDashboard,getVerificationReview,uploadFile,getVerificationSummary,saveSiteDetails
+  getApplicationProgress,getVisitorDashboard,getVerificationReview,uploadFile,getVerificationSummary,saveSiteDetails,deletePhoto
 } from "./controller/loanApproval.controller.js";
 
 const router = express.Router();
@@ -192,6 +192,13 @@ router.get(
   "/applications/:loanId/verification-summary",
   protect,
   getVerificationSummary
+);
+
+
+router.delete(
+  "/:loanId/file",
+  protect,
+  deletePhoto
 );
 
 export default router;

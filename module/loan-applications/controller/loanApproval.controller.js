@@ -631,8 +631,15 @@ export const submitVerification = async (req, res) => {
 
     const { loanId } = req.params;
 
-    const { informationCorrect, photosGenuine, investigationCompleted } =
-      req.body;
+    const {
+      informationCorrect,
+      photosGenuine,
+      investigationCompleted,
+    } = req.body;
+
+    // ======================================================
+    // Find Verification
+    // ======================================================
 
     const verification = await VisitorVerification.findOne({
       loan: loanId,
@@ -648,6 +655,10 @@ export const submitVerification = async (req, res) => {
       });
     }
 
+    // ======================================================
+    // Already Submitted
+    // ======================================================
+
     if (verification.status === "SUBMITTED") {
       await session.abortTransaction();
 
@@ -658,24 +669,42 @@ export const submitVerification = async (req, res) => {
     }
 
     // ======================================================
+    // Final Declaration Validation
+    // ======================================================
+
+    const isInformationCorrect =
+      informationCorrect === true || informationCorrect === "true";
+
+    const arePhotosGenuine =
+      photosGenuine === true || photosGenuine === "true";
+
+    const isInvestigationCompleted =
+      investigationCompleted === true ||
+      investigationCompleted === "true";
+
+    if (
+      !isInformationCorrect ||
+      !arePhotosGenuine ||
+      !isInvestigationCompleted
+    ) {
+      await session.abortTransaction();
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please accept all declaration checkboxes before submitting.",
+      });
+    }
+
+    // ======================================================
     // Investigation Validation
     // ======================================================
 
-    const investigation = verification.investigation || {};
+    // Final declaration says investigation is completed.
+    // No need to check only one random investigation field
+    // using OR condition here.
 
-    const investigationCompletedFlag =
-      investigation.customerAvailable ||
-      investigation.customerVerified ||
-      investigation.addressVerified ||
-      investigation.employmentVerified ||
-      investigation.businessVerified ||
-      investigation.incomeVerified ||
-      investigation.originalDocumentsVerified ||
-      investigation.photocopiesCollected ||
-      investigation.houseVisited ||
-      investigation.neighboursVerified;
-
-    if (!investigationCompletedFlag) {
+    if (!isInvestigationCompleted) {
       await session.abortTransaction();
 
       return res.status(400).json({
@@ -688,15 +717,21 @@ export const submitVerification = async (req, res) => {
     // Photo Validation
     // ======================================================
 
-    const requiredPhotos = ["CUSTOMER", "CUSTOMER_SELFIE", "HOUSE_FRONT"];
+    const requiredPhotos = [
+      "CUSTOMER",
+      "CUSTOMER_SELFIE",
+      "HOUSE_FRONT",
+    ];
 
-    const uploadedPhotos = verification.photos.map((item) => item.category);
+    const uploadedPhotos = Array.isArray(verification.photos)
+      ? verification.photos.map((item) => item.category)
+      : [];
 
     const missingPhotos = requiredPhotos.filter(
-      (item) => !uploadedPhotos.includes(item),
+      (item) => !uploadedPhotos.includes(item)
     );
 
-    if (missingPhotos.length) {
+    if (missingPhotos.length > 0) {
       await session.abortTransaction();
 
       return res.status(400).json({
@@ -709,15 +744,20 @@ export const submitVerification = async (req, res) => {
     // Document Validation
     // ======================================================
 
-    const requiredDocuments = ["AADHAAR", "PAN"];
+    const requiredDocuments = [
+      "AADHAAR",
+      "PAN",
+    ];
 
-    const uploadedDocuments = verification.documents.map((item) => item.type);
+    const uploadedDocuments = Array.isArray(verification.documents)
+      ? verification.documents.map((item) => item.type)
+      : [];
 
     const missingDocuments = requiredDocuments.filter(
-      (item) => !uploadedDocuments.includes(item),
+      (item) => !uploadedDocuments.includes(item)
     );
 
-    if (missingDocuments.length) {
+    if (missingDocuments.length > 0) {
       await session.abortTransaction();
 
       return res.status(400).json({
@@ -730,7 +770,7 @@ export const submitVerification = async (req, res) => {
     // Witness Validation
     // ======================================================
 
-    if (!verification.witness?.agreed) {
+    if (verification.witness?.agreed !== true) {
       await session.abortTransaction();
 
       return res.status(400).json({
@@ -740,10 +780,10 @@ export const submitVerification = async (req, res) => {
     }
 
     // ======================================================
-    // Customer Consent
+    // Customer Consent Validation
     // ======================================================
 
-    if (!verification.customerConsent?.accepted) {
+    if (verification.customerConsent?.accepted !== true) {
       await session.abortTransaction();
 
       return res.status(400).json({
@@ -753,7 +793,7 @@ export const submitVerification = async (req, res) => {
     }
 
     // ======================================================
-    // Recommendation
+    // Recommendation Validation
     // ======================================================
 
     if (!verification.recommendation) {
@@ -766,22 +806,13 @@ export const submitVerification = async (req, res) => {
     }
 
     // ======================================================
-    // Final Declaration Validation
+    // Save Final Declaration
     // ======================================================
 
-    if (!informationCorrect || !photosGenuine || !investigationCompleted) {
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        success: false,
-        message: "Please accept all declaration checkboxes before submitting.",
-      });
-    }
-
     verification.finalDeclaration = {
-      informationCorrect,
-      photosGenuine,
-      investigationCompleted,
+      informationCorrect: isInformationCorrect,
+      photosGenuine: arePhotosGenuine,
+      investigationCompleted: isInvestigationCompleted,
       acceptedAt: new Date(),
     };
 
@@ -810,10 +841,18 @@ export const submitVerification = async (req, res) => {
 
     await verification.save({ session });
 
+    // ======================================================
+    // Update Loan
+    // ======================================================
+
     loan.status = "UNDER_REVIEW";
     loan.stage = "ADMIN_REVIEW";
 
     await loan.save({ session });
+
+    // ======================================================
+    // Commit Transaction
+    // ======================================================
 
     await session.commitTransaction();
 
@@ -829,7 +868,9 @@ export const submitVerification = async (req, res) => {
       },
     });
   } catch (error) {
-    await session.abortTransaction();
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
 
     console.error("Submit Verification Error:", error);
 
@@ -838,10 +879,9 @@ export const submitVerification = async (req, res) => {
       message: error.message,
     });
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
-
 export const saveInvestigation = async (req, res) => {
   try {
     const { loanId } = req.params;
@@ -1045,27 +1085,68 @@ export const saveSiteDetails = async (req, res) => {
       });
     }
 
-    // Validate new photos
+    // ==========================================
+    // VALIDATE NEW PHOTOS
+    // ==========================================
+
     for (const photo of photos) {
-      if (!photo.name || !photo.url) {
+      if (!photo.name?.trim()) {
         return res.status(400).json({
           success: false,
-          message: "Each site photo must contain name and url.",
+          message: "Each site photo must contain name.",
+        });
+      }
+
+      if (!photo.url?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Each site photo must contain url.",
+        });
+      }
+
+      // publicId bhi hona chahiye because
+      // universal delete API publicId se file delete karegi
+      if (!photo.publicId?.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: "Each site photo must contain publicId.",
         });
       }
     }
 
-    // Get existing photos from DB
+    // ==========================================
+    // GET EXISTING PHOTOS
+    // ==========================================
+
     const existingPhotos =
       verification.siteDetails?.photos || [];
 
-    // Merge existing + new photos
+    // ==========================================
+    // FORMAT NEW PHOTOS
+    // ==========================================
+
+    const formattedPhotos = photos.map((photo) => ({
+      name: photo.name.trim(),
+      url: photo.url.trim(),
+      publicId: photo.publicId.trim(),
+      uploadedAt: photo.uploadedAt
+        ? new Date(photo.uploadedAt)
+        : new Date(),
+    }));
+
+    // ==========================================
+    // MERGE EXISTING + NEW PHOTOS
+    // ==========================================
+
     const mergedPhotos = [
       ...existingPhotos,
-      ...photos,
+      ...formattedPhotos,
     ];
 
-    // Maximum 10 photos allowed in total
+    // ==========================================
+    // MAX 10 SITE PHOTOS
+    // ==========================================
+
     if (mergedPhotos.length > 10) {
       return res.status(400).json({
         success: false,
@@ -1073,13 +1154,19 @@ export const saveSiteDetails = async (req, res) => {
       });
     }
 
-    // Save merged photos
+    // ==========================================
+    // SAVE SITE DETAILS
+    // ==========================================
+
     verification.siteDetails = {
       ...verification.siteDetails,
       photos: mergedPhotos,
     };
 
-    // Change status
+    // ==========================================
+    // CHANGE STATUS
+    // ==========================================
+
     if (verification.status === "ASSIGNED") {
       verification.status = "IN_PROGRESS";
       verification.startedAt = new Date();
@@ -1109,12 +1196,20 @@ export const deletePhoto = async (req, res) => {
     const { loanId } = req.params;
     const { publicId } = req.body;
 
-    if (!publicId) {
+    // ======================================
+    // Validate Public ID
+    // ======================================
+
+    if (!publicId?.trim()) {
       return res.status(400).json({
         success: false,
         message: "Public ID is required.",
       });
     }
+
+    // ======================================
+    // Find Verification
+    // ======================================
 
     const verification = await VisitorVerification.findOne({
       loan: loanId,
@@ -1128,6 +1223,10 @@ export const deletePhoto = async (req, res) => {
       });
     }
 
+    // ======================================
+    // Already Submitted
+    // ======================================
+
     if (verification.status === "SUBMITTED") {
       return res.status(400).json({
         success: false,
@@ -1135,32 +1234,151 @@ export const deletePhoto = async (req, res) => {
       });
     }
 
-    // Find photo using publicId
-    const photoIndex = verification.photos.findIndex(
-      (photo) => photo.publicId === publicId
-    );
+    let deletedFrom = null;
+    let deletedItem = null;
 
-    if (photoIndex === -1) {
+    // ======================================
+    // 1. verification.photos
+    // ======================================
+
+    if (Array.isArray(verification.photos)) {
+      const index = verification.photos.findIndex(
+        (photo) => photo.publicId === publicId
+      );
+
+      if (index !== -1) {
+        deletedItem = verification.photos[index];
+
+        verification.photos.splice(index, 1);
+
+        deletedFrom = "verification.photos";
+      }
+    }
+
+    // ======================================
+    // 2. siteDetails.photos
+    // ======================================
+
+    if (
+      !deletedFrom &&
+      Array.isArray(verification.siteDetails?.photos)
+    ) {
+      const index = verification.siteDetails.photos.findIndex(
+        (photo) =>
+          photo.publicId === publicId ||
+          photo.imageUrl === publicId ||
+          photo.url === publicId
+      );
+
+      if (index !== -1) {
+        deletedItem = verification.siteDetails.photos[index];
+
+        verification.siteDetails.photos.splice(index, 1);
+
+        deletedFrom = "siteDetails.photos";
+      }
+    }
+
+    // ======================================
+    // 3. witness.photos
+    // ======================================
+
+    if (
+      !deletedFrom &&
+      Array.isArray(verification.witness?.photos)
+    ) {
+      const index = verification.witness.photos.findIndex(
+        (photo) => photo.publicId === publicId
+      );
+
+      if (index !== -1) {
+        deletedItem = verification.witness.photos[index];
+
+        verification.witness.photos.splice(index, 1);
+
+        deletedFrom = "witness.photos";
+      }
+    }
+
+    // ======================================
+    // 4. witness.signatures
+    // ======================================
+
+    if (
+      !deletedFrom &&
+      Array.isArray(verification.witness?.signatures)
+    ) {
+      const index = verification.witness.signatures.findIndex(
+        (signature) => signature.publicId === publicId
+      );
+
+      if (index !== -1) {
+        deletedItem = verification.witness.signatures[index];
+
+        verification.witness.signatures.splice(index, 1);
+
+        deletedFrom = "witness.signatures";
+      }
+    }
+
+    // ======================================
+    // 5. witness.documents
+    // ======================================
+
+    if (
+      !deletedFrom &&
+      Array.isArray(verification.witness?.documents)
+    ) {
+      const index = verification.witness.documents.findIndex(
+        (document) => document.publicId === publicId
+      );
+
+      if (index !== -1) {
+        deletedItem = verification.witness.documents[index];
+
+        verification.witness.documents.splice(index, 1);
+
+        deletedFrom = "witness.documents";
+      }
+    }
+
+    // ======================================
+    // Not Found
+    // ======================================
+
+    if (!deletedFrom) {
       return res.status(404).json({
         success: false,
-        message: "Photo not found.",
+        message: "File not found.",
       });
     }
 
+    // ======================================
     // Delete from Cloudinary
-    await cloudinary.uploader.destroy(publicId);
+    // ======================================
 
-    // Delete from DB
-    verification.photos.splice(photoIndex, 1);
+    if (deletedItem?.publicId) {
+      await cloudinary.uploader.destroy(
+        deletedItem.publicId
+      );
+    }
+
+    // ======================================
+    // Save DB
+    // ======================================
 
     await verification.save();
 
     return res.status(200).json({
       success: true,
-      message: "Photo deleted successfully.",
+      message: "File deleted successfully.",
+      data: {
+        publicId,
+        deletedFrom,
+      },
     });
   } catch (error) {
-    console.error("Delete Photo Error:", error);
+    console.error("Delete File Error:", error);
 
     return res.status(500).json({
       success: false,
