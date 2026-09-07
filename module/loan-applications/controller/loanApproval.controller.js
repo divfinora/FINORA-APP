@@ -5,6 +5,7 @@ import User from "../../User/user.route.js";
 import { applyManualLoan } from "../service.js/manualLoan.service.js";
 import { applyInstantLoan } from "../service.js/instantLoan.service.js";
 import { uploadToCloudinary } from "../service.js/visitorVerification.service.js";
+import cloudinary from "../../../config/cloudanryConnection.js";
 import VisitorVerification from "../visitorverification.js";
 import Employee from "../../User/Employee_Schema.js";
 import { getVerificationProgress } from "../helper/visitorProgress.helper.js";
