@@ -6,7 +6,7 @@ import { applyManualLoan } from "../service.js/manualLoan.service.js";
 import { applyInstantLoan } from "../service.js/instantLoan.service.js";
 import { uploadToCloudinary } from "../service.js/visitorVerification.service.js";
 import VisitorVerification from "../visitorverification.js";
-import Employee  from "../../User/Employee_Schema.js";
+import Employee from "../../User/Employee_Schema.js";
 import { getVerificationProgress } from "../helper/visitorProgress.helper.js";
 export const createApproval = async (req, res) => {
   try {
@@ -100,8 +100,7 @@ export const approveLoan = async (req, res) => {
 
         return res.status(400).json({
           success: false,
-          message:
-            "Visitor verification is not submitted or already reviewed.",
+          message: "Visitor verification is not submitted or already reviewed.",
         });
       }
 
@@ -158,9 +157,7 @@ export const approveLoan = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: `${
-        loan.product.processingType === "MANUAL"
-          ? "Manual"
-          : "Instant"
+        loan.product.processingType === "MANUAL" ? "Manual" : "Instant"
       } loan approved successfully.`,
       data: {
         loan,
@@ -354,8 +351,6 @@ export const getRejectedLoans = async (req, res) => {
   }
 };
 
-
-
 const generateJobId = () => {
   const year = new Date().getFullYear();
   const timestamp = Date.now().toString().slice(-6);
@@ -446,16 +441,16 @@ export const assignVisitor = async (req, res) => {
       });
     }
 
- if (visitor.status !== "ACTIVE") {
-  await session.abortTransaction();
+    if (visitor.status !== "ACTIVE") {
+      await session.abortTransaction();
 
-  return res.status(400).json({
-    success: false,
-    message: "Visitor account is inactive.",
-  });
-}
-const jobId = generateJobId();
-const verificationId = `VV-${Date.now()}`;
+      return res.status(400).json({
+        success: false,
+        message: "Visitor account is inactive.",
+      });
+    }
+    const jobId = generateJobId();
+    const verificationId = `VV-${Date.now()}`;
 
     // Update Loan
     loan.assignedVisitor = visitor._id;
@@ -466,62 +461,62 @@ const verificationId = `VV-${Date.now()}`;
     await loan.save({ session });
 
     // Create Verification Record
-  await VisitorVerification.create(
-  [
-    {
-      jobId,
-      verificationId,
+    await VisitorVerification.create(
+      [
+        {
+          jobId,
+          verificationId,
 
-      loan: loan._id,
-      customer: loan.customer,
-      visitor: visitor._id,
+          loan: loan._id,
+          customer: loan.customer,
+          visitor: visitor._id,
 
-      status: "ASSIGNED",
+          status: "ASSIGNED",
 
-      photos: [],
-      videos: [],
-      documents: [],
+          photos: [],
+          videos: [],
+          documents: [],
 
-      investigation: {},
+          investigation: {},
 
-      location: {},
+          location: {},
 
-      witness: {},
+          witness: {},
 
-      customerConsent: {},
+          customerConsent: {},
 
-      visitorDeclaration: {},
+          visitorDeclaration: {},
 
-      recommendation: null,
+          recommendation: null,
 
-      remarks: "",
+          remarks: "",
 
-      startedAt: null,
-      submittedAt: null,
-      completedAt: null,
-    },
-  ],
-  {
-    session,
-  }
-);
+          startedAt: null,
+          submittedAt: null,
+          completedAt: null,
+        },
+      ],
+      {
+        session,
+      },
+    );
 
     await session.commitTransaction();
 
-return res.status(200).json({
-  success: true,
-  message: "Visitor assigned successfully.",
-  data: {
-    jobId,
-    verificationId,
-    loanId: loan._id,
-    applicationId: loan.applicationId,
-    visitorId: visitor._id,
-    visitorName: visitor.fullName,
-    status: "ASSIGNED",
-    assignedAt: loan.visitorAssignedAt,
-  },
-});
+    return res.status(200).json({
+      success: true,
+      message: "Visitor assigned successfully.",
+      data: {
+        jobId,
+        verificationId,
+        loanId: loan._id,
+        applicationId: loan.applicationId,
+        visitorId: visitor._id,
+        visitorName: visitor.fullName,
+        status: "ASSIGNED",
+        assignedAt: loan.visitorAssignedAt,
+      },
+    });
   } catch (error) {
     await session.abortTransaction();
 
@@ -636,11 +631,8 @@ export const submitVerification = async (req, res) => {
 
     const { loanId } = req.params;
 
-    const {
-      informationCorrect,
-      photosGenuine,
-      investigationCompleted,
-    } = req.body;
+    const { informationCorrect, photosGenuine, investigationCompleted } =
+      req.body;
 
     const verification = await VisitorVerification.findOne({
       loan: loanId,
@@ -696,18 +688,12 @@ export const submitVerification = async (req, res) => {
     // Photo Validation
     // ======================================================
 
-    const requiredPhotos = [
-      "CUSTOMER",
-      "CUSTOMER_SELFIE",
-      "HOUSE_FRONT",
-    ];
+    const requiredPhotos = ["CUSTOMER", "CUSTOMER_SELFIE", "HOUSE_FRONT"];
 
-    const uploadedPhotos = verification.photos.map(
-      (item) => item.category
-    );
+    const uploadedPhotos = verification.photos.map((item) => item.category);
 
     const missingPhotos = requiredPhotos.filter(
-      (item) => !uploadedPhotos.includes(item)
+      (item) => !uploadedPhotos.includes(item),
     );
 
     if (missingPhotos.length) {
@@ -723,17 +709,12 @@ export const submitVerification = async (req, res) => {
     // Document Validation
     // ======================================================
 
-    const requiredDocuments = [
-      "AADHAAR",
-      "PAN",
-    ];
+    const requiredDocuments = ["AADHAAR", "PAN"];
 
-    const uploadedDocuments = verification.documents.map(
-      (item) => item.type
-    );
+    const uploadedDocuments = verification.documents.map((item) => item.type);
 
     const missingDocuments = requiredDocuments.filter(
-      (item) => !uploadedDocuments.includes(item)
+      (item) => !uploadedDocuments.includes(item),
     );
 
     if (missingDocuments.length) {
@@ -788,17 +769,12 @@ export const submitVerification = async (req, res) => {
     // Final Declaration Validation
     // ======================================================
 
-    if (
-      !informationCorrect ||
-      !photosGenuine ||
-      !investigationCompleted
-    ) {
+    if (!informationCorrect || !photosGenuine || !investigationCompleted) {
       await session.abortTransaction();
 
       return res.status(400).json({
         success: false,
-        message:
-          "Please accept all declaration checkboxes before submitting.",
+        message: "Please accept all declaration checkboxes before submitting.",
       });
     }
 
@@ -852,7 +828,6 @@ export const submitVerification = async (req, res) => {
         submittedAt: verification.submittedAt,
       },
     });
-
   } catch (error) {
     await session.abortTransaction();
 
@@ -862,7 +837,6 @@ export const submitVerification = async (req, res) => {
       success: false,
       message: error.message,
     });
-
   } finally {
     session.endSession();
   }
@@ -891,13 +865,8 @@ export const saveInvestigation = async (req, res) => {
       });
     }
 
-    const {
-      investigation,
-      location,
-      recommendation,
-      remarks,
-      description,
-    } = req.body;
+    const { investigation, location, recommendation, remarks, description } =
+      req.body;
 
     // Description is optional
     if (description !== undefined) {
@@ -947,7 +916,6 @@ export const saveInvestigation = async (req, res) => {
       message: "Investigation saved you can start next.",
       data: verification,
     });
-
   } catch (error) {
     console.error("Save Investigation Error:", error);
 
@@ -1006,7 +974,7 @@ export const uploadPhotos = async (req, res) => {
     for (const file of req.files) {
       const uploaded = await uploadToCloudinary(
         file.buffer,
-        `visitor-verification/${loanId}/photos`
+        `visitor-verification/${loanId}/photos`,
       );
 
       const photoData = {
@@ -1046,7 +1014,6 @@ export const uploadPhotos = async (req, res) => {
   }
 };
 
-
 export const saveSiteDetails = async (req, res) => {
   try {
     const { loanId } = req.params;
@@ -1078,13 +1045,7 @@ export const saveSiteDetails = async (req, res) => {
       });
     }
 
-    if (photos.length > 10) {
-      return res.status(400).json({
-        success: false,
-        message: "Maximum 10 site photos allowed.",
-      });
-    }
-
+    // Validate new photos
     for (const photo of photos) {
       if (!photo.name || !photo.url) {
         return res.status(400).json({
@@ -1094,10 +1055,31 @@ export const saveSiteDetails = async (req, res) => {
       }
     }
 
+    // Get existing photos from DB
+    const existingPhotos =
+      verification.siteDetails?.photos || [];
+
+    // Merge existing + new photos
+    const mergedPhotos = [
+      ...existingPhotos,
+      ...photos,
+    ];
+
+    // Maximum 10 photos allowed in total
+    if (mergedPhotos.length > 10) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum 10 site photos allowed. You already have ${existingPhotos.length} photos.`,
+      });
+    }
+
+    // Save merged photos
     verification.siteDetails = {
-      photos,
+      ...verification.siteDetails,
+      photos: mergedPhotos,
     };
 
+    // Change status
     if (verification.status === "ASSIGNED") {
       verification.status = "IN_PROGRESS";
       verification.startedAt = new Date();
@@ -1120,6 +1102,72 @@ export const saveSiteDetails = async (req, res) => {
   }
 };
 
+
+
+export const deletePhoto = async (req, res) => {
+  try {
+    const { loanId } = req.params;
+    const { publicId } = req.body;
+
+    if (!publicId) {
+      return res.status(400).json({
+        success: false,
+        message: "Public ID is required.",
+      });
+    }
+
+    const verification = await VisitorVerification.findOne({
+      loan: loanId,
+      visitor: req.user._id,
+    });
+
+    if (!verification) {
+      return res.status(404).json({
+        success: false,
+        message: "Verification not found.",
+      });
+    }
+
+    if (verification.status === "SUBMITTED") {
+      return res.status(400).json({
+        success: false,
+        message: "Verification already submitted.",
+      });
+    }
+
+    // Find photo using publicId
+    const photoIndex = verification.photos.findIndex(
+      (photo) => photo.publicId === publicId
+    );
+
+    if (photoIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        message: "Photo not found.",
+      });
+    }
+
+    // Delete from Cloudinary
+    await cloudinary.uploader.destroy(publicId);
+
+    // Delete from DB
+    verification.photos.splice(photoIndex, 1);
+
+    await verification.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Photo deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete Photo Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
 export const saveWitness = async (req, res) => {
   try {
@@ -1417,7 +1465,6 @@ export const saveWitness = async (req, res) => {
         canResume: true,
       },
     });
-
   } catch (error) {
     console.error("Save Witness Error:", error);
 
@@ -1427,9 +1474,6 @@ export const saveWitness = async (req, res) => {
     });
   }
 };
-
-
-
 
 export const uploadFile = async (req, res) => {
   try {
@@ -1442,13 +1486,9 @@ export const uploadFile = async (req, res) => {
 
     const { folder } = req.body;
 
-    const uploadFolder =
-      folder?.trim() || "visitor-verification";
+    const uploadFolder = folder?.trim() || "visitor-verification";
 
-    const uploaded = await uploadToCloudinary(
-      req.file.buffer,
-      uploadFolder
-    );
+    const uploaded = await uploadToCloudinary(req.file.buffer, uploadFolder);
 
     return res.status(200).json({
       success: true,
@@ -1460,7 +1500,6 @@ export const uploadFile = async (req, res) => {
         publicId: uploaded.public_id,
       },
     });
-
   } catch (error) {
     console.error("Upload File Error:", error);
 
@@ -1471,8 +1510,7 @@ export const uploadFile = async (req, res) => {
   }
 };
 
-
-// admin flow of manual verification 
+// admin flow of manual verification
 
 export const getVerificationDetails = async (req, res) => {
   try {
@@ -1494,10 +1532,7 @@ export const getVerificationDetails = async (req, res) => {
           },
         ],
       })
-      .populate(
-        "visitor",
-        "fullName employeeId mobile email profileImage"
-      );
+      .populate("visitor", "fullName employeeId mobile email profileImage");
 
     if (!verification) {
       return res.status(404).json({
@@ -1519,9 +1554,6 @@ export const getVerificationDetails = async (req, res) => {
     });
   }
 };
-
-
-
 
 // ✅ Yaha rakho
 const calculateProgress = (verification) => {
@@ -1554,7 +1586,6 @@ const calculateProgress = (verification) => {
 
   return Math.round((completed / checklist.length) * 100);
 };
-
 
 // ✅ Ye bhi yahi rakho
 const getChecklist = (verification) => {
@@ -1597,7 +1628,6 @@ const getChecklist = (verification) => {
     },
   ];
 };
-
 
 // API Controllers niche
 export const getMyApplications = async (req, res) => {
@@ -1653,12 +1683,11 @@ export const getMyApplications = async (req, res) => {
           // VISITOR VERIFICATION
           // ======================================
 
-          verificationStatus:
-            verification?.status || "ASSIGNED",
+          verificationStatus: verification?.status || "ASSIGNED",
 
           progress,
         };
-      })
+      }),
     );
 
     return res.status(200).json({
@@ -1674,7 +1703,6 @@ export const getMyApplications = async (req, res) => {
     });
   }
 };
-
 
 export const getApplicationProgress = async (req, res) => {
   try {
@@ -1764,7 +1792,7 @@ export const getVisitorDashboard = async (req, res) => {
     // ============================================
 
     const visitor = await Employee.findById(visitorId).select(
-      "employeeId fullName mobile email profileImage role"
+      "employeeId fullName mobile email profileImage role",
     );
 
     if (!visitor) {
@@ -1783,7 +1811,7 @@ export const getVisitorDashboard = async (req, res) => {
 
     const currentWeekStart = new Date();
     currentWeekStart.setDate(
-      currentWeekStart.getDate() - currentWeekStart.getDay()
+      currentWeekStart.getDate() - currentWeekStart.getDay(),
     );
     currentWeekStart.setHours(0, 0, 0, 0);
 
@@ -1864,9 +1892,7 @@ export const getVisitorDashboard = async (req, res) => {
     const pending = assigned + inProgress;
 
     const completionRate =
-      totalAssigned === 0
-        ? 0
-        : Math.round((submitted / totalAssigned) * 100);
+      totalAssigned === 0 ? 0 : Math.round((submitted / totalAssigned) * 100);
 
     const visitGrowth =
       previousWeekCompleted === 0
@@ -1876,7 +1902,7 @@ export const getVisitorDashboard = async (req, res) => {
         : Math.round(
             ((currentWeekCompleted - previousWeekCompleted) /
               previousWeekCompleted) *
-              100
+              100,
           );
 
     // ============================================
@@ -1891,18 +1917,18 @@ export const getVisitorDashboard = async (req, res) => {
       .populate("customer", "fullName mobile city state")
       .populate("product", "displayName name")
       .sort({ visitorAssignedAt: -1 });
-          // ============================================
+    // ============================================
     // Visitor Verification Map
     // ============================================
 
     const loanIds = loans.map((loan) => loan._id);
 
-const verifications = await VisitorVerification.find({
-  loan: { $in: loanIds },
-  visitor: visitorId,
-}).select(
-  "jobId verificationId loan status investigation photos videos documents startedAt submittedAt"
-);
+    const verifications = await VisitorVerification.find({
+      loan: { $in: loanIds },
+      visitor: visitorId,
+    }).select(
+      "jobId verificationId loan status investigation photos videos documents startedAt submittedAt",
+    );
 
     const verificationMap = new Map();
 
@@ -1932,42 +1958,39 @@ const verifications = await VisitorVerification.find({
       }
 
       return {
-  jobId: verification?.jobId || null,
+        jobId: verification?.jobId || null,
 
-  verificationId: verification?.verificationId || null,
+        verificationId: verification?.verificationId || null,
 
-  loanId: loan._id,
+        loanId: loan._id,
 
-  applicationId: loan.applicationId,
+        applicationId: loan.applicationId,
 
-  customer: {
-    id: loan.customer?._id,
-    name: loan.customer?.fullName,
-    mobile: loan.customer?.mobile,
-    city: loan.customer?.city,
-    state: loan.customer?.state,
-  },
+        customer: {
+          id: loan.customer?._id,
+          name: loan.customer?.fullName,
+          mobile: loan.customer?.mobile,
+          city: loan.customer?.city,
+          state: loan.customer?.state,
+        },
 
-  product: {
-    id: loan.product?._id,
-    name:
-      loan.product?.displayName ||
-      loan.product?.name,
-  },
+        product: {
+          id: loan.product?._id,
+          name: loan.product?.displayName || loan.product?.name,
+        },
 
-  amount: loan.amount,
+        amount: loan.amount,
 
-  status: loan.status,
+        status: loan.status,
 
-  verificationStatus:
-    verification?.status || "ASSIGNED",
+        verificationStatus: verification?.status || "ASSIGNED",
 
-  progress,
+        progress,
 
-  priority,
+        priority,
 
-  assignedAt: loan.visitorAssignedAt,
-};
+        assignedAt: loan.visitorAssignedAt,
+      };
     });
 
     // ============================================
@@ -1975,7 +1998,7 @@ const verifications = await VisitorVerification.find({
     // ============================================
 
     const upcomingTasks = todayJobs.filter(
-      (job) => job.verificationStatus === "ASSIGNED"
+      (job) => job.verificationStatus === "ASSIGNED",
     );
 
     // ============================================
@@ -2031,9 +2054,6 @@ const verifications = await VisitorVerification.find({
   }
 };
 
-
-
-
 export const getVerificationReview = async (req, res) => {
   try {
     const { loanId } = req.params;
@@ -2058,8 +2078,7 @@ export const getVerificationReview = async (req, res) => {
 
     const investigationCompleted =
       !!verification.investigation &&
-      (
-        verification.investigation.customerAvailable ||
+      (verification.investigation.customerAvailable ||
         verification.investigation.customerVerified ||
         verification.investigation.addressVerified ||
         verification.investigation.employmentVerified ||
@@ -2068,24 +2087,20 @@ export const getVerificationReview = async (req, res) => {
         verification.investigation.originalDocumentsVerified ||
         verification.investigation.photocopiesCollected ||
         verification.investigation.houseVisited ||
-        verification.investigation.neighboursVerified
-      );
+        verification.investigation.neighboursVerified);
 
     const photosCompleted = verification.photos.length > 0;
 
     const documentsCompleted = verification.documents.length > 0;
 
-    const witnessCompleted =
-      verification.witness?.agreed === true;
+    const witnessCompleted = verification.witness?.agreed === true;
 
-    const consentCompleted =
-      verification.customerConsent?.accepted === true;
+    const consentCompleted = verification.customerConsent?.accepted === true;
 
     const declarationCompleted =
       verification.visitorDeclaration?.accepted === true;
 
-    const recommendationCompleted =
-      !!verification.recommendation;
+    const recommendationCompleted = !!verification.recommendation;
 
     // ================================
     // Missing Sections
@@ -2144,9 +2159,7 @@ export const getVerificationReview = async (req, res) => {
     ];
 
     const verificationPhotos = allPhotos
-      .filter((photo) =>
-        verificationCategories.includes(photo.category)
-      )
+      .filter((photo) => verificationCategories.includes(photo.category))
       .map((photo) => ({
         category: photo.category,
         name: photo.name || null,
@@ -2160,10 +2173,7 @@ export const getVerificationReview = async (req, res) => {
         (photo) =>
           photo.category === "OTHER" ||
           photo.category === "DOCUMENT" ||
-          ![
-            "WITNESS",
-            ...verificationCategories,
-          ].includes(photo.category)
+          !["WITNESS", ...verificationCategories].includes(photo.category),
       )
       .map((photo) => ({
         category: photo.category,
@@ -2362,10 +2372,7 @@ export const getSubmitSummary = async (req, res) => {
     const totalVideos = verification.videos?.length || 0;
     const totalDocuments = verification.documents?.length || 0;
 
-    const totalFiles =
-      totalPhotos +
-      totalVideos +
-      totalDocuments;
+    const totalFiles = totalPhotos + totalVideos + totalDocuments;
 
     // ==============================
     // Metadata Status
@@ -2414,11 +2421,9 @@ export const getSubmitSummary = async (req, res) => {
           totalDocuments,
           totalFiles,
 
-          metadataStatus:
-            metadataVerified ? "VERIFIED" : "PENDING",
+          metadataStatus: metadataVerified ? "VERIFIED" : "PENDING",
 
-          finalReview:
-            finalReview ? "READY" : "INCOMPLETE",
+          finalReview: finalReview ? "READY" : "INCOMPLETE",
         },
 
         submitAllowed,
@@ -2434,16 +2439,12 @@ export const getSubmitSummary = async (req, res) => {
   }
 };
 
-
 export const saveFinalDeclaration = async (req, res) => {
   try {
     const { loanId } = req.params;
 
-    const {
-      informationCorrect,
-      photosGenuine,
-      investigationCompleted,
-    } = req.body;
+    const { informationCorrect, photosGenuine, investigationCompleted } =
+      req.body;
 
     const verification = await VisitorVerification.findOne({
       loan: loanId,
@@ -2488,7 +2489,6 @@ export const saveFinalDeclaration = async (req, res) => {
   }
 };
 
-
 export const getVerificationSummary = async (req, res) => {
   try {
     const { loanId } = req.params;
@@ -2518,23 +2518,18 @@ export const getVerificationSummary = async (req, res) => {
     const location = verification.location || {};
     const siteDetails = verification.siteDetails || {};
     const witness = verification.witness || {};
-    const customerConsent =
-      verification.customerConsent || {};
-    const visitorDeclaration =
-      verification.visitorDeclaration || {};
-    const finalDeclaration =
-      verification.finalDeclaration || {};
+    const customerConsent = verification.customerConsent || {};
+    const visitorDeclaration = verification.visitorDeclaration || {};
+    const finalDeclaration = verification.finalDeclaration || {};
 
     const allPhotos = verification.photos || [];
     const allDocuments = verification.documents || [];
     const allVideos = verification.videos || [];
 
     // ROOT LEVEL DESCRIPTION
-    const description =
-      verification.description || "";
+    const description = verification.description || "";
 
-    const editable =
-      verification.status !== "SUBMITTED";
+    const editable = verification.status !== "SUBMITTED";
 
     // ==========================================
     // INVESTIGATION COMPLETION
@@ -2553,17 +2548,15 @@ export const getVerificationSummary = async (req, res) => {
       "neighboursVerified",
     ];
 
-    const investigationCompleted =
-      investigationFields.every(
-        (field) => investigation[field] === true
-      );
+    const investigationCompleted = investigationFields.every(
+      (field) => investigation[field] === true,
+    );
 
     // ==========================================
     // SITE DETAILS
     // ==========================================
 
-    const sitePhotos =
-      siteDetails.photos || [];
+    const sitePhotos = siteDetails.photos || [];
 
     const hasGps =
       location.latitude !== null &&
@@ -2572,16 +2565,11 @@ export const getVerificationSummary = async (req, res) => {
       location.longitude !== undefined;
 
     const hasAddress =
-      typeof location.address === "string" &&
-      location.address.trim() !== "";
+      typeof location.address === "string" && location.address.trim() !== "";
 
-    const hasSitePhotos =
-      sitePhotos.length > 0;
+    const hasSitePhotos = sitePhotos.length > 0;
 
-    const siteDetailsCompleted =
-      hasSitePhotos ||
-      hasGps ||
-      hasAddress;
+    const siteDetailsCompleted = hasSitePhotos || hasGps || hasAddress;
 
     // ==========================================
     // PHOTO CLEANER
@@ -2592,25 +2580,19 @@ export const getVerificationSummary = async (req, res) => {
 
     const cleanPhoto = (photo) => {
       const isLocalFile =
-        typeof photo.url === "string" &&
-        photo.url.startsWith("file://");
+        typeof photo.url === "string" && photo.url.startsWith("file://");
 
       return {
         category: photo.category || null,
 
-        name:
-          photo.name || null,
+        name: photo.name || null,
 
         // Only Cloudinary/remote URL
-        url: isLocalFile
-          ? null
-          : photo.url || null,
+        url: isLocalFile ? null : photo.url || null,
 
-        publicId:
-          photo.publicId || null,
+        publicId: photo.publicId || null,
 
-        uploadedAt:
-          photo.uploadedAt || null,
+        uploadedAt: photo.uploadedAt || null,
       };
     };
 
@@ -2628,109 +2610,77 @@ export const getVerificationSummary = async (req, res) => {
     ];
 
     const verificationPhotos = allPhotos
-      .filter((photo) =>
-        verificationCategories.includes(
-          photo.category
-        )
-      )
+      .filter((photo) => verificationCategories.includes(photo.category))
       .map(cleanPhoto);
 
     const witnessPhotos = allPhotos
-      .filter(
-        (photo) =>
-          photo.category === "WITNESS"
-      )
+      .filter((photo) => photo.category === "WITNESS")
       .map(cleanPhoto);
 
     const documentPhotos = allPhotos
-      .filter(
-        (photo) =>
-          photo.category === "DOCUMENT"
-      )
+      .filter((photo) => photo.category === "DOCUMENT")
       .map(cleanPhoto);
 
     const otherPhotos = allPhotos
-      .filter(
-        (photo) =>
-          photo.category === "OTHER"
-      )
+      .filter((photo) => photo.category === "OTHER")
       .map(cleanPhoto);
 
     // ==========================================
     // CLEAN SITE PHOTOS
     // ==========================================
 
-    const cleanSitePhotos =
-      sitePhotos.map((photo) => {
-        const isLocalFile =
-          typeof photo.url === "string" &&
-          photo.url.startsWith("file://");
+    const cleanSitePhotos = sitePhotos.map((photo) => {
+      const isLocalFile =
+        typeof photo.url === "string" && photo.url.startsWith("file://");
 
-        return {
-          name:
-            photo.name || null,
+      return {
+        name: photo.name || null,
 
-          url: isLocalFile
-            ? null
-            : photo.url || null,
+        url: isLocalFile ? null : photo.url || null,
 
-          publicId:
-            photo.publicId || null,
+        publicId: photo.publicId || null,
 
-          uploadedAt:
-            photo.uploadedAt || null,
-        };
-      });
+        uploadedAt: photo.uploadedAt || null,
+      };
+    });
 
     // ==========================================
     // PHOTO COMPLETION
     // ==========================================
 
-    const validPhotoCount =
-      allPhotos.filter(
-        (photo) =>
-          photo.url &&
-          !photo.url.startsWith("file://")
-      ).length;
+    const validPhotoCount = allPhotos.filter(
+      (photo) => photo.url && !photo.url.startsWith("file://"),
+    ).length;
 
-    const validSitePhotoCount =
-      sitePhotos.filter(
-        (photo) =>
-          photo.url &&
-          !photo.url.startsWith("file://")
-      ).length;
+    const validSitePhotoCount = sitePhotos.filter(
+      (photo) => photo.url && !photo.url.startsWith("file://"),
+    ).length;
 
-    const photosCompleted =
-      validPhotoCount > 0 ||
-      validSitePhotoCount > 0;
+    const photosCompleted = validPhotoCount > 0 || validSitePhotoCount > 0;
 
     // ==========================================
     // DOCUMENTS
     // ==========================================
 
-    const documentsCompleted =
-      allDocuments.length > 0;
+    const documentsCompleted = allDocuments.length > 0;
 
     // ==========================================
     // WITNESS
     // ==========================================
 
-    const witnessCompleted =
-      witness.agreed === true;
+    const witnessCompleted = witness.agreed === true;
 
     // ==========================================
     // CUSTOMER CONSENT
     // ==========================================
 
-    const customerConsentCompleted =
-      customerConsent.accepted === true;
+    const customerConsentCompleted = customerConsent.accepted === true;
 
     // ==========================================
     // VISITOR DECLARATION
     // ==========================================
 
-    const visitorDeclarationCompleted =
-      visitorDeclaration.accepted === true;
+    const visitorDeclarationCompleted = visitorDeclaration.accepted === true;
 
     // ==========================================
     // FINAL DECLARATION
@@ -2746,15 +2696,13 @@ export const getVerificationSummary = async (req, res) => {
     // ==========================================
 
     const remarksCompleted =
-      !!verification.remarks?.trim() ||
-      !!investigation.remarks?.trim();
+      !!verification.remarks?.trim() || !!investigation.remarks?.trim();
 
     // ==========================================
     // RECOMMENDATION
     // ==========================================
 
-    const recommendationCompleted =
-      !!verification.recommendation;
+    const recommendationCompleted = !!verification.recommendation;
 
     // ==========================================
     // SECTION STATUS
@@ -2762,54 +2710,31 @@ export const getVerificationSummary = async (req, res) => {
 
     const sectionStatus = {
       verification: true,
-      investigation:
-        investigationCompleted,
-      siteDetails:
-        siteDetailsCompleted,
-      photos:
-        photosCompleted,
-      documents:
-        documentsCompleted,
-      witness:
-        witnessCompleted,
-      customerConsent:
-        customerConsentCompleted,
-      visitorDeclaration:
-        visitorDeclarationCompleted,
-      remarks:
-        remarksCompleted,
-      recommendation:
-        recommendationCompleted,
+      investigation: investigationCompleted,
+      siteDetails: siteDetailsCompleted,
+      photos: photosCompleted,
+      documents: documentsCompleted,
+      witness: witnessCompleted,
+      customerConsent: customerConsentCompleted,
+      visitorDeclaration: visitorDeclarationCompleted,
+      remarks: remarksCompleted,
+      recommendation: recommendationCompleted,
     };
 
     // ==========================================
     // MISSING SECTIONS
     // ==========================================
 
-    const missing = Object.entries(
-      sectionStatus
-    )
-      .filter(
-        ([_, completed]) =>
-          !completed
-      )
-      .map(
-        ([section]) =>
-          section.toUpperCase()
-      );
+    const missing = Object.entries(sectionStatus)
+      .filter(([_, completed]) => !completed)
+      .map(([section]) => section.toUpperCase());
 
     const completedSections =
-      Object.values(
-        sectionStatus
-      ).filter(Boolean).length;
+      Object.values(sectionStatus).filter(Boolean).length;
 
-    const totalSections =
-      Object.keys(
-        sectionStatus
-      ).length;
+    const totalSections = Object.keys(sectionStatus).length;
 
-    const readyForSubmit =
-      missing.length === 0;
+    const readyForSubmit = missing.length === 0;
 
     // ==========================================
     // PROGRESS
@@ -2817,11 +2742,7 @@ export const getVerificationSummary = async (req, res) => {
 
     const percentage =
       totalSections > 0
-        ? Math.round(
-            (completedSections /
-              totalSections) *
-              100
-          )
+        ? Math.round((completedSections / totalSections) * 100)
         : 0;
 
     // ==========================================
@@ -2829,43 +2750,31 @@ export const getVerificationSummary = async (req, res) => {
     // ==========================================
 
     const photoSummary = {
-      total:
-        validPhotoCount +
-        validSitePhotoCount,
+      total: validPhotoCount + validSitePhotoCount,
 
       witness: {
-        count:
-          witnessPhotos.length,
-        photos:
-          witnessPhotos,
+        count: witnessPhotos.length,
+        photos: witnessPhotos,
       },
 
       verification: {
-        count:
-          verificationPhotos.length,
-        photos:
-          verificationPhotos,
+        count: verificationPhotos.length,
+        photos: verificationPhotos,
       },
 
       document: {
-        count:
-          documentPhotos.length,
-        photos:
-          documentPhotos,
+        count: documentPhotos.length,
+        photos: documentPhotos,
       },
 
       other: {
-        count:
-          otherPhotos.length,
-        photos:
-          otherPhotos,
+        count: otherPhotos.length,
+        photos: otherPhotos,
       },
 
       site: {
-        count:
-          validSitePhotoCount,
-        photos:
-          cleanSitePhotos,
+        count: validSitePhotoCount,
+        photos: cleanSitePhotos,
       },
     };
 
@@ -2876,8 +2785,7 @@ export const getVerificationSummary = async (req, res) => {
     return res.status(200).json({
       success: true,
 
-      message:
-        "Verification summary fetched successfully.",
+      message: "Verification summary fetched successfully.",
 
       data: {
         // ======================================
@@ -2885,27 +2793,20 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         header: {
-          jobId:
-            verification.jobId,
+          jobId: verification.jobId,
 
-          verificationId:
-            verification.verificationId,
+          verificationId: verification.verificationId,
 
-          loanId:
-            verification.loan?._id?.toString() ||
-            loanId,
+          loanId: verification.loan?._id?.toString() || loanId,
 
-          status:
-            verification.status,
+          status: verification.status,
 
           editable,
 
           progress: {
-            completedSteps:
-              completedSections,
+            completedSteps: completedSections,
 
-            totalSteps:
-              totalSections,
+            totalSteps: totalSections,
 
             percentage,
           },
@@ -2915,15 +2816,13 @@ export const getVerificationSummary = async (req, res) => {
         // LOAN
         // ======================================
 
-        loan:
-          verification.loan,
+        loan: verification.loan,
 
         // ======================================
         // CUSTOMER
         // ======================================
 
-        customer:
-          verification.customer,
+        customer: verification.customer,
 
         // ======================================
         // DESCRIPTION
@@ -2936,70 +2835,44 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         investigationDetails: {
-          completed:
-            investigationCompleted,
+          completed: investigationCompleted,
 
           editable,
 
           description,
 
-          customerAvailable:
-            investigation.customerAvailable ??
-            false,
+          customerAvailable: investigation.customerAvailable ?? false,
 
-          customerVerified:
-            investigation.customerVerified ??
-            false,
+          customerVerified: investigation.customerVerified ?? false,
 
-          addressVerified:
-            investigation.addressVerified ??
-            false,
+          addressVerified: investigation.addressVerified ?? false,
 
-          employmentVerified:
-            investigation.employmentVerified ??
-            false,
+          employmentVerified: investigation.employmentVerified ?? false,
 
-          businessVerified:
-            investigation.businessVerified ??
-            false,
+          businessVerified: investigation.businessVerified ?? false,
 
-          incomeVerified:
-            investigation.incomeVerified ??
-            false,
+          incomeVerified: investigation.incomeVerified ?? false,
 
           originalDocumentsVerified:
-            investigation.originalDocumentsVerified ??
-            false,
+            investigation.originalDocumentsVerified ?? false,
 
-          photocopiesCollected:
-            investigation.photocopiesCollected ??
-            false,
+          photocopiesCollected: investigation.photocopiesCollected ?? false,
 
-          houseVisited:
-            investigation.houseVisited ??
-            false,
+          houseVisited: investigation.houseVisited ?? false,
 
-          neighboursVerified:
-            investigation.neighboursVerified ??
-            false,
+          neighboursVerified: investigation.neighboursVerified ?? false,
 
-          remarks:
-            investigation.remarks || "",
+          remarks: investigation.remarks || "",
 
           location: {
-            latitude:
-              location.latitude ?? null,
+            latitude: location.latitude ?? null,
 
-            longitude:
-              location.longitude ?? null,
+            longitude: location.longitude ?? null,
 
-            address:
-              location.address || "",
+            address: location.address || "",
           },
 
-          recommendation:
-            verification.recommendation ||
-            null,
+          recommendation: verification.recommendation || null,
         },
 
         // ======================================
@@ -3007,24 +2880,19 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         siteDetails: {
-          completed:
-            siteDetailsCompleted,
+          completed: siteDetailsCompleted,
 
           editable,
 
           description,
 
-          latitude:
-            location.latitude ?? null,
+          latitude: location.latitude ?? null,
 
-          longitude:
-            location.longitude ?? null,
+          longitude: location.longitude ?? null,
 
-          address:
-            location.address || "",
+          address: location.address || "",
 
-          photos:
-            cleanSitePhotos,
+          photos: cleanSitePhotos,
         },
 
         // ======================================
@@ -3032,53 +2900,40 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         photos: {
-          completed:
-            photosCompleted,
+          completed: photosCompleted,
 
           editable,
 
-          count:
-            validPhotoCount +
-            validSitePhotoCount,
+          count: validPhotoCount + validSitePhotoCount,
 
           verificationPhotos: {
-            count:
-              verificationPhotos.length,
+            count: verificationPhotos.length,
 
-            items:
-              verificationPhotos,
+            items: verificationPhotos,
           },
 
           witnessPhotos: {
-            count:
-              witnessPhotos.length,
+            count: witnessPhotos.length,
 
-            items:
-              witnessPhotos,
+            items: witnessPhotos,
           },
 
           documentPhotos: {
-            count:
-              documentPhotos.length,
+            count: documentPhotos.length,
 
-            items:
-              documentPhotos,
+            items: documentPhotos,
           },
 
           otherPhotos: {
-            count:
-              otherPhotos.length,
+            count: otherPhotos.length,
 
-            items:
-              otherPhotos,
+            items: otherPhotos,
           },
 
           sitePhotos: {
-            count:
-              validSitePhotoCount,
+            count: validSitePhotoCount,
 
-            items:
-              cleanSitePhotos,
+            items: cleanSitePhotos,
           },
         },
 
@@ -3087,16 +2942,13 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         documents: {
-          completed:
-            documentsCompleted,
+          completed: documentsCompleted,
 
           editable,
 
-          count:
-            allDocuments.length,
+          count: allDocuments.length,
 
-          items:
-            allDocuments,
+          items: allDocuments,
         },
 
         // ======================================
@@ -3104,34 +2956,25 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         witnessDetails: {
-          completed:
-            witnessCompleted,
+          completed: witnessCompleted,
 
           editable,
 
-          fullName:
-            witness.fullName || "",
+          fullName: witness.fullName || "",
 
-          mobile:
-            witness.mobile || "",
+          mobile: witness.mobile || "",
 
-          relation:
-            witness.relation || "",
+          relation: witness.relation || "",
 
-          signatures:
-            witness.signatures || [],
+          signatures: witness.signatures || [],
 
-          photos:
-            witness.photos || [],
+          photos: witness.photos || [],
 
-          documents:
-            witness.documents || [],
+          documents: witness.documents || [],
 
-          agreed:
-            witness.agreed ?? false,
+          agreed: witness.agreed ?? false,
 
-          signedAt:
-            witness.signedAt || null,
+          signedAt: witness.signedAt || null,
         },
 
         // ======================================
@@ -3139,22 +2982,15 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         customerConsent: {
-          completed:
-            customerConsentCompleted,
+          completed: customerConsentCompleted,
 
           editable,
 
-          accepted:
-            customerConsent.accepted ??
-            false,
+          accepted: customerConsent.accepted ?? false,
 
-          signature:
-            customerConsent.signature ||
-            "",
+          signature: customerConsent.signature || "",
 
-          signedAt:
-            customerConsent.signedAt ||
-            null,
+          signedAt: customerConsent.signedAt || null,
         },
 
         // ======================================
@@ -3162,30 +2998,19 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         visitorDeclaration: {
-          completed:
-            visitorDeclarationCompleted,
+          completed: visitorDeclarationCompleted,
 
           editable,
 
-          accepted:
-            visitorDeclaration.accepted ??
-            false,
+          accepted: visitorDeclaration.accepted ?? false,
 
-          signature:
-            visitorDeclaration.signature ||
-            "",
+          signature: visitorDeclaration.signature || "",
 
-          reviewedBy:
-            visitorDeclaration.reviewedBy ||
-            null,
+          reviewedBy: visitorDeclaration.reviewedBy || null,
 
-          reviewedAt:
-            visitorDeclaration.reviewedAt ||
-            null,
+          reviewedAt: visitorDeclaration.reviewedAt || null,
 
-          declaredAt:
-            visitorDeclaration.declaredAt ||
-            null,
+          declaredAt: visitorDeclaration.declaredAt || null,
         },
 
         // ======================================
@@ -3194,15 +3019,13 @@ export const getVerificationSummary = async (req, res) => {
 
         reviewDetails: {
           verification: {
-            completed:
-              readyForSubmit,
+            completed: readyForSubmit,
 
             editable,
           },
 
           investigation: {
-            completed:
-              investigationCompleted,
+            completed: investigationCompleted,
 
             editable,
 
@@ -3212,58 +3035,39 @@ export const getVerificationSummary = async (req, res) => {
               ...investigation,
 
               location: {
-                latitude:
-                  location.latitude ??
-                  null,
+                latitude: location.latitude ?? null,
 
-                longitude:
-                  location.longitude ??
-                  null,
+                longitude: location.longitude ?? null,
 
-                address:
-                  location.address ||
-                  "",
+                address: location.address || "",
               },
 
-              recommendation:
-                verification.recommendation ||
-                null,
+              recommendation: verification.recommendation || null,
             },
           },
 
           siteDetails: {
-            completed:
-              siteDetailsCompleted,
+            completed: siteDetailsCompleted,
 
             editable,
 
             description,
 
-            latitude:
-              location.latitude ??
-              null,
+            latitude: location.latitude ?? null,
 
-            longitude:
-              location.longitude ??
-              null,
+            longitude: location.longitude ?? null,
 
-            address:
-              location.address ||
-              "",
+            address: location.address || "",
 
-            photos:
-              cleanSitePhotos,
+            photos: cleanSitePhotos,
           },
 
           photos: {
-            completed:
-              photosCompleted,
+            completed: photosCompleted,
 
             editable,
 
-            count:
-              validPhotoCount +
-              validSitePhotoCount,
+            count: validPhotoCount + validSitePhotoCount,
 
             items: [
               ...verificationPhotos,
@@ -3275,56 +3079,43 @@ export const getVerificationSummary = async (req, res) => {
           },
 
           witness: {
-            completed:
-              witnessCompleted,
+            completed: witnessCompleted,
 
             editable,
 
-            data:
-              witness,
+            data: witness,
           },
 
           customerConsent: {
-            completed:
-              customerConsentCompleted,
+            completed: customerConsentCompleted,
 
             editable,
 
-            data:
-              customerConsent,
+            data: customerConsent,
           },
 
           visitorDeclaration: {
-            completed:
-              visitorDeclarationCompleted,
+            completed: visitorDeclarationCompleted,
 
             editable,
 
-            data:
-              visitorDeclaration,
+            data: visitorDeclaration,
           },
 
           remarks: {
-            completed:
-              remarksCompleted,
+            completed: remarksCompleted,
 
             editable,
 
-            value:
-              verification.remarks ||
-              investigation.remarks ||
-              "",
+            value: verification.remarks || investigation.remarks || "",
           },
 
           recommendation: {
-            completed:
-              recommendationCompleted,
+            completed: recommendationCompleted,
 
             editable,
 
-            value:
-              verification.recommendation ||
-              null,
+            value: verification.recommendation || null,
           },
         },
 
@@ -3333,55 +3124,35 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         submitVerification: {
-          completed:
-            finalDeclarationCompleted,
+          completed: finalDeclarationCompleted,
 
           editable,
 
           declaration: {
-            informationCorrect:
-              finalDeclaration.informationCorrect ??
-              false,
+            informationCorrect: finalDeclaration.informationCorrect ?? false,
 
-            photosGenuine:
-              finalDeclaration.photosGenuine ??
-              false,
+            photosGenuine: finalDeclaration.photosGenuine ?? false,
 
             investigationCompleted:
-              finalDeclaration.investigationCompleted ??
-              false,
+              finalDeclaration.investigationCompleted ?? false,
 
-            acceptedAt:
-              finalDeclaration.acceptedAt ||
-              null,
+            acceptedAt: finalDeclaration.acceptedAt || null,
           },
 
           submissionSummary: {
             filesAttached:
-              validPhotoCount +
-              validSitePhotoCount +
-              allDocuments.length,
+              validPhotoCount + validSitePhotoCount + allDocuments.length,
 
-            totalPhotos:
-              validPhotoCount +
-              validSitePhotoCount,
+            totalPhotos: validPhotoCount + validSitePhotoCount,
 
-            totalDocuments:
-              allDocuments.length,
+            totalDocuments: allDocuments.length,
 
-            totalVideos:
-              allVideos.length,
+            totalVideos: allVideos.length,
 
             metadataStatus:
-              verification.status ===
-              "SUBMITTED"
-                ? "Verified"
-                : "Pending",
+              verification.status === "SUBMITTED" ? "Verified" : "Pending",
 
-            finalReview:
-              readyForSubmit
-                ? "Ready"
-                : "Pending",
+            finalReview: readyForSubmit ? "Ready" : "Pending",
           },
         },
 
@@ -3390,15 +3161,11 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         summary: {
-          totalPhotos:
-            validPhotoCount +
-            validSitePhotoCount,
+          totalPhotos: validPhotoCount + validSitePhotoCount,
 
-          totalDocuments:
-            allDocuments.length,
+          totalDocuments: allDocuments.length,
 
-          totalVideos:
-            allVideos.length,
+          totalVideos: allVideos.length,
 
           completedSections,
 
@@ -3416,29 +3183,18 @@ export const getVerificationSummary = async (req, res) => {
         // ======================================
 
         timeline: {
-          startedAt:
-            verification.startedAt ||
-            null,
+          startedAt: verification.startedAt || null,
 
-          submittedAt:
-            verification.submittedAt ||
-            null,
+          submittedAt: verification.submittedAt || null,
 
-          completedAt:
-            verification.completedAt ||
-            null,
+          completedAt: verification.completedAt || null,
 
-          lastSavedAt:
-            verification.updatedAt ||
-            null,
+          lastSavedAt: verification.updatedAt || null,
         },
       },
     });
   } catch (error) {
-    console.error(
-      "Get Verification Summary Error:",
-      error
-    );
+    console.error("Get Verification Summary Error:", error);
 
     return res.status(500).json({
       success: false,
