@@ -1197,10 +1197,6 @@ export const deletePhoto = async (req, res) => {
     const { loanId } = req.params;
     const { publicId } = req.body;
 
-    // ======================================
-    // Validate Public ID
-    // ======================================
-
     if (!publicId?.trim()) {
       return res.status(400).json({
         success: false,
@@ -1208,27 +1204,16 @@ export const deletePhoto = async (req, res) => {
       });
     }
 
-    // ======================================
-    // Find Verification
-    // ======================================
-
     const verification = await VisitorVerification.findOne({
       loan: loanId,
       visitor: req.user._id,
     });
 
-    if (!verification) {
-      return res.status(404).json({
-        success: false,
-        message: "Verification not found.",
-      });
-    }
-
     // ======================================
     // Already Submitted
     // ======================================
 
-    if (verification.status === "SUBMITTED") {
+    if (verification?.status === "SUBMITTED") {
       return res.status(400).json({
         success: false,
         message: "Verification already submitted.",
@@ -1239,143 +1224,117 @@ export const deletePhoto = async (req, res) => {
     let deletedItem = null;
 
     // ======================================
-    // 1. verification.photos
+    // DB record search
     // ======================================
 
-    if (Array.isArray(verification.photos)) {
-      const index = verification.photos.findIndex(
-        (photo) => photo.publicId === publicId
-      );
+    if (verification) {
+      // verification.photos
+      if (Array.isArray(verification.photos)) {
+        const index = verification.photos.findIndex(
+          (photo) => photo.publicId === publicId
+        );
 
-      if (index !== -1) {
-        deletedItem = verification.photos[index];
-
-        verification.photos.splice(index, 1);
-
-        deletedFrom = "verification.photos";
+        if (index !== -1) {
+          deletedItem = verification.photos[index];
+          verification.photos.splice(index, 1);
+          deletedFrom = "verification.photos";
+        }
       }
-    }
 
-    // ======================================
-    // 2. siteDetails.photos
-    // ======================================
+      // siteDetails.photos
+      if (
+        !deletedFrom &&
+        Array.isArray(verification.siteDetails?.photos)
+      ) {
+        const index = verification.siteDetails.photos.findIndex(
+          (photo) =>
+            photo.publicId === publicId ||
+            photo.imageUrl === publicId ||
+            photo.url === publicId
+        );
 
-    if (
-      !deletedFrom &&
-      Array.isArray(verification.siteDetails?.photos)
-    ) {
-      const index = verification.siteDetails.photos.findIndex(
-        (photo) =>
-          photo.publicId === publicId ||
-          photo.imageUrl === publicId ||
-          photo.url === publicId
-      );
-
-      if (index !== -1) {
-        deletedItem = verification.siteDetails.photos[index];
-
-        verification.siteDetails.photos.splice(index, 1);
-
-        deletedFrom = "siteDetails.photos";
+        if (index !== -1) {
+          deletedItem = verification.siteDetails.photos[index];
+          verification.siteDetails.photos.splice(index, 1);
+          deletedFrom = "siteDetails.photos";
+        }
       }
-    }
 
-    // ======================================
-    // 3. witness.photos
-    // ======================================
+      // witness.photos
+      if (
+        !deletedFrom &&
+        Array.isArray(verification.witness?.photos)
+      ) {
+        const index = verification.witness.photos.findIndex(
+          (photo) => photo.publicId === publicId
+        );
 
-    if (
-      !deletedFrom &&
-      Array.isArray(verification.witness?.photos)
-    ) {
-      const index = verification.witness.photos.findIndex(
-        (photo) => photo.publicId === publicId
-      );
-
-      if (index !== -1) {
-        deletedItem = verification.witness.photos[index];
-
-        verification.witness.photos.splice(index, 1);
-
-        deletedFrom = "witness.photos";
+        if (index !== -1) {
+          deletedItem = verification.witness.photos[index];
+          verification.witness.photos.splice(index, 1);
+          deletedFrom = "witness.photos";
+        }
       }
-    }
 
-    // ======================================
-    // 4. witness.signatures
-    // ======================================
+      // witness.signatures
+      if (
+        !deletedFrom &&
+        Array.isArray(verification.witness?.signatures)
+      ) {
+        const index = verification.witness.signatures.findIndex(
+          (signature) => signature.publicId === publicId
+        );
 
-    if (
-      !deletedFrom &&
-      Array.isArray(verification.witness?.signatures)
-    ) {
-      const index = verification.witness.signatures.findIndex(
-        (signature) => signature.publicId === publicId
-      );
-
-      if (index !== -1) {
-        deletedItem = verification.witness.signatures[index];
-
-        verification.witness.signatures.splice(index, 1);
-
-        deletedFrom = "witness.signatures";
+        if (index !== -1) {
+          deletedItem = verification.witness.signatures[index];
+          verification.witness.signatures.splice(index, 1);
+          deletedFrom = "witness.signatures";
+        }
       }
-    }
 
-    // ======================================
-    // 5. witness.documents
-    // ======================================
+      // witness.documents
+      if (
+        !deletedFrom &&
+        Array.isArray(verification.witness?.documents)
+      ) {
+        const index = verification.witness.documents.findIndex(
+          (document) => document.publicId === publicId
+        );
 
-    if (
-      !deletedFrom &&
-      Array.isArray(verification.witness?.documents)
-    ) {
-      const index = verification.witness.documents.findIndex(
-        (document) => document.publicId === publicId
-      );
-
-      if (index !== -1) {
-        deletedItem = verification.witness.documents[index];
-
-        verification.witness.documents.splice(index, 1);
-
-        deletedFrom = "witness.documents";
+        if (index !== -1) {
+          deletedItem = verification.witness.documents[index];
+          verification.witness.documents.splice(index, 1);
+          deletedFrom = "witness.documents";
+        }
       }
-    }
-
-    // ======================================
-    // Not Found
-    // ======================================
-
-    if (!deletedFrom) {
-      return res.status(404).json({
-        success: false,
-        message: "File not found.",
-      });
     }
 
     // ======================================
     // Delete from Cloudinary
     // ======================================
 
-    if (deletedItem?.publicId) {
-      await cloudinary.uploader.destroy(
-        deletedItem.publicId
-      );
+    const cloudinaryResult =
+      await cloudinary.uploader.destroy(publicId);
+
+    // ======================================
+    // Save DB if record existed
+    // ======================================
+
+    if (deletedFrom && verification) {
+      await verification.save();
     }
 
     // ======================================
-    // Save DB
+    // Response
     // ======================================
-
-    await verification.save();
 
     return res.status(200).json({
       success: true,
       message: "File deleted successfully.",
       data: {
         publicId,
-        deletedFrom,
+        deletedFrom: deletedFrom || "cloudinary_only",
+        cloudinaryResult: cloudinaryResult.result,
       },
     });
   } catch (error) {
