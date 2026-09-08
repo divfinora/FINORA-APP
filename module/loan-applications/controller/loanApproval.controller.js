@@ -674,10 +674,12 @@ export const submitVerification = async (req, res) => {
     // ======================================================
 
     const isInformationCorrect =
-      informationCorrect === true || informationCorrect === "true";
+      informationCorrect === true ||
+      informationCorrect === "true";
 
     const arePhotosGenuine =
-      photosGenuine === true || photosGenuine === "true";
+      photosGenuine === true ||
+      photosGenuine === "true";
 
     const isInvestigationCompleted =
       investigationCompleted === true ||
@@ -698,113 +700,14 @@ export const submitVerification = async (req, res) => {
     }
 
     // ======================================================
-    // Investigation Validation
+    // OPTIONAL DATA
     // ======================================================
-
-    // Final declaration says investigation is completed.
-    // No need to check only one random investigation field
-    // using OR condition here.
-
-    if (!isInvestigationCompleted) {
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        success: false,
-        message: "Please complete investigation.",
-      });
-    }
-
+    // Photos, Documents, Witness, Customer Consent
+    // and Recommendation are NOT required for submission.
+    //
+    // They can be added/updated before or after submission
+    // according to your business flow.
     // ======================================================
-    // Photo Validation
-    // ======================================================
-
-    const requiredPhotos = [
-      "CUSTOMER",
-      "CUSTOMER_SELFIE",
-      "HOUSE_FRONT",
-    ];
-
-    const uploadedPhotos = Array.isArray(verification.photos)
-      ? verification.photos.map((item) => item.category)
-      : [];
-
-    const missingPhotos = requiredPhotos.filter(
-      (item) => !uploadedPhotos.includes(item)
-    );
-
-    if (missingPhotos.length > 0) {
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        success: false,
-        message: `Missing required photos: ${missingPhotos.join(", ")}`,
-      });
-    }
-
-    // ======================================================
-    // Document Validation
-    // ======================================================
-
-    const requiredDocuments = [
-      "AADHAAR",
-      "PAN",
-    ];
-
-    const uploadedDocuments = Array.isArray(verification.documents)
-      ? verification.documents.map((item) => item.type)
-      : [];
-
-    const missingDocuments = requiredDocuments.filter(
-      (item) => !uploadedDocuments.includes(item)
-    );
-
-    if (missingDocuments.length > 0) {
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        success: false,
-        message: `Missing required documents: ${missingDocuments.join(", ")}`,
-      });
-    }
-
-    // ======================================================
-    // Witness Validation
-    // ======================================================
-
-    if (verification.witness?.agreed !== true) {
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        success: false,
-        message: "Witness verification is required.",
-      });
-    }
-
-    // ======================================================
-    // Customer Consent Validation
-    // ======================================================
-
-    if (verification.customerConsent?.accepted !== true) {
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        success: false,
-        message: "Customer consent is required.",
-      });
-    }
-
-    // ======================================================
-    // Recommendation Validation
-    // ======================================================
-
-    if (!verification.recommendation) {
-      await session.abortTransaction();
-
-      return res.status(400).json({
-        success: false,
-        message: "Recommendation is required.",
-      });
-    }
 
     // ======================================================
     // Save Final Declaration
