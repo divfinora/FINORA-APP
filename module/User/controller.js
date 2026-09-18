@@ -532,14 +532,32 @@ export const getVerificationStatus = async (req, res) => {
       }).select("verified status"),
     ]);
 
-    const aadhaarVerified = !!kyc?.aadhaarNumber;
+    // -------------------------
+    // AADHAAR VERIFICATION
+    // -------------------------
 
-    const panVerified = !!kyc?.panNumber;
+    const aadhaarVerified =
+      kyc?.aadhaarVerified === true;
+
+    // -------------------------
+    // PAN VERIFICATION
+    // -------------------------
+
+    const panVerified =
+      kyc?.panVerified === true;
+
+    // -------------------------
+    // PERSONAL DETAILS
+    // -------------------------
 
     const personalDetailsCompleted =
       !!kyc?.fullName &&
       !!kyc?.dob &&
       !!kyc?.gender;
+
+    // -------------------------
+    // ADDRESS
+    // -------------------------
 
     const addressCompleted =
       !!kyc?.addressLine &&
@@ -547,15 +565,26 @@ export const getVerificationStatus = async (req, res) => {
       !!kyc?.state &&
       !!kyc?.pinCode;
 
+    // -------------------------
+    // OCCUPATION
+    // -------------------------
+
     const occupationCompleted =
       !!kyc?.occupation &&
       !!kyc?.annualIncome;
+
+    // -------------------------
+    // BANK VERIFICATION
+    // -------------------------
 
     const bankVerified =
       bankAccount?.verified === true &&
       bankAccount?.status === "VERIFIED";
 
-    // Agar koi bhi ek section complete/verified hai
+    // -------------------------
+    // OVERALL VERIFICATION
+    // -------------------------
+
     const isVerification =
       aadhaarVerified ||
       panVerified ||
@@ -571,9 +600,11 @@ export const getVerificationStatus = async (req, res) => {
 
         aadhaarVerified,
         panVerified,
+
         personalDetailsCompleted,
         addressCompleted,
         occupationCompleted,
+
         bankVerified,
 
         kycStatus: isVerification
@@ -590,11 +621,10 @@ export const getVerificationStatus = async (req, res) => {
 };
 
 
-
-
 export const getKycProgress = async (req, res) => {
   try {
-        console.log("🔥 NEW getKycProgress CONTROLLER HIT");
+    console.log("🔥 NEW getKycProgress CONTROLLER HIT");
+
     const [user, kyc, bankAccount] = await Promise.all([
       User.findById(req.user.id).select("mobile"),
 
@@ -633,14 +663,14 @@ export const getKycProgress = async (req, res) => {
     };
 
     // -------------------------
-    // AADHAAR
+    // AADHAAR VERIFICATION
     // -------------------------
 
     const aadhaarVerified =
       kyc?.aadhaarVerified === true;
 
     // -------------------------
-    // PAN
+    // PAN VERIFICATION
     // -------------------------
 
     const panVerified =
@@ -709,7 +739,6 @@ export const getKycProgress = async (req, res) => {
       success: true,
 
       data: {
-
         // =========================
         // OVERALL KYC
         // =========================
@@ -830,16 +859,12 @@ export const getKycProgress = async (req, res) => {
             }
           : null,
       },
-     
     });
-
   } catch (error) {
-
     return res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
 
