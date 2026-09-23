@@ -161,6 +161,30 @@ export const applyLoan = async (req, res) => {
 };
 
 
+const maskPan = (pan = "") => {
+  if (!pan) return "";
+
+  const value = String(pan).trim();
+
+  if (value.length <= 4) {
+    return "*".repeat(value.length);
+  }
+
+  return `${value.slice(0, 2)}*****${value.slice(-2)}`;
+};
+
+const maskAadhaar = (aadhaar = "") => {
+  if (!aadhaar) return "";
+
+  const value = String(aadhaar).replace(/\s/g, "");
+
+  if (value.length <= 4) {
+    return "*".repeat(value.length);
+  }
+
+  return `********${value.slice(-4)}`;
+};
+
 export const getLoanApplicationPrefill = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -195,7 +219,6 @@ export const getLoanApplicationPrefill = async (req, res) => {
     // ==========================================
     // RESPONSE
     // ==========================================
-
     return res.status(200).json({
       success: true,
 
@@ -239,19 +262,28 @@ export const getLoanApplicationPrefill = async (req, res) => {
         bankDetails: bankAccount
           ? {
               bankName: bankAccount.bankName || "",
+
               accountNumber: maskAccountNumber(
                 bankAccount.accountNumber
               ),
+
               ifsc: bankAccount.ifsc || "",
+
               accountHolderName:
                 bankAccount.accountHolderName || "",
-              bankVerified: Boolean(bankAccount.verified),
+
+              bankVerified: Boolean(
+                bankAccount.verified
+              ),
             }
           : null,
       },
     });
   } catch (error) {
-    console.error("Loan Application Prefill Error:", error);
+    console.error(
+      "Loan Application Prefill Error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -884,5 +916,3 @@ export const downloadLoanStatement = async (req, res) => {
     });
   }
 };
-
-
